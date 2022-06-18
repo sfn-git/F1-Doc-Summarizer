@@ -25,10 +25,10 @@ try:
     document_url = latest_document.find_element(By.TAG_NAME, "a")
     url = document_url.get_attribute("href")
     description = "{}".format(date)
-    driver.close()
+    driver.quit()
 except Exception as e:
     print(e)
-    driver.close()
+    driver.quit()
     exit(1)
 
 try:

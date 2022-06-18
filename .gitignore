@@ -160,3 +160,7 @@ cython_debug/
 #.idea/
 config.json
 chromedriver
+latest.pdf
+out.jpg
+output/page.jpg
+output/page.jpg
