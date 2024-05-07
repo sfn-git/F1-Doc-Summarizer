@@ -3,7 +3,10 @@ from utils.logging import logging
 import os
 from sys import exit
 
-config_file_path = "./config.json"
+config_file_path = "./config/config.json"
+
+if not os.path.exists('./config'):
+    os.makedirs('./config')
 
 if not os.path.exists(config_file_path):
         blank_file = {
@@ -20,7 +23,7 @@ if not os.path.exists(config_file_path):
             exit()
 
 # Opening JSON file
-f = open('./config.json')
+f = open(config_file_path)
   
 # returns JSON object as 
 # a dictionary

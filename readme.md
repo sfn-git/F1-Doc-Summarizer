@@ -17,10 +17,10 @@
 - Run `main.py` whenever you want to check and send FIA Doc files that have not been sent.
 
 ### Docker
-- Coming soon...
+- Documentation coming soon
 
 ## Config File
-- Upon running the first time, the config file will generate and exit
+### Upon running the first time, the config file will generate and the program will exit
 
 - `DISCORD_WEBHOOK_URL` 
 - `ENV`

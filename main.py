@@ -1,3 +1,4 @@
+import utils.config as config
 from utils.discord_webhook import sendMessage
 from sys import exit
 import requests
@@ -8,7 +9,6 @@ from io import StringIO
 import re
 import sys, os
 from utils.discord_webhook import sendMessage
-import utils.config as config
 from random import choice
 from random import randint
 from hashlib import md5
@@ -16,8 +16,9 @@ import json
 from utils.logging import logging
 
 DOCUMENT_ENUMS = ["Summons", "Decision", "Infringement"]
+HASH_PATH = './config/sent-hashes.json'
 
-def main():
+def main():    
     get_latest_fia_docs()
 
 def get_latest_fia_docs():
@@ -161,20 +162,21 @@ def get_fun_prompt():
         # return FUN_PROMPTS[3]
     
 def get_hash_data():
-    if not os.path.exists("sent-hashes.json"):
+    
+    if not os.path.exists(HASH_PATH):
         blank_file = {"link_hash": [], "reference": []}
-        with open("sent-hashes.json", "w") as jsonFile:
+        with open(HASH_PATH, "w") as jsonFile:
             json.dump(blank_file, jsonFile)
             logging.warn('Created sent-hashes.json file')
-    with open("sent-hashes.json", "r") as jsonFile:
+    with open(HASH_PATH, "r") as jsonFile:
         return json.load(jsonFile)
 
 def add_hash(hash, link):
-    with open("sent-hashes.json", "r") as jsonFile:
+    with open(HASH_PATH, "r") as jsonFile:
         data = json.load(jsonFile)
     data["link_hash"].append(hash)
     data['reference'].append({'hash': hash, 'link': link})
-    with open("sent-hashes.json", "w") as jsonFile:
+    with open(HASH_PATH, "w") as jsonFile:
         json.dump(data, jsonFile)
         logging.info('Added {} to hash file with hash {}'.format(link, hash))
 
