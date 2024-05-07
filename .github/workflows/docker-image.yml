@@ -8,11 +8,20 @@ on:
 
 jobs:
 
-  build:
-
-    runs-on: self-hosted
-
+  build_and_push:
+    runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag fia_doc_webhook:$(date +%s)
+    - uses: actions/checkout@v2
+    # https://github.com/marketplace/actions/push-to-ghcr
+    - name: Build and publish Docker image for ${{ github.repository }}
+      uses: macbre/push-to-ghcr@master
+      with:
+        image_name: ${{ github.repository }}  # it will be lowercased internally
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        # optionally push to the Docker Hub (docker.io)
+        # docker_io_token: ${{ secrets.DOCKER_IO_ACCESS_TOKEN }}  # see https://hub.docker.com/settings/security
+        # customize the username to be used when pushing to the Docker Hub
+        # docker_io_user: foobar  # see https://github.com/macbre/push-to-ghcr/issues/14
+      
+
+    
