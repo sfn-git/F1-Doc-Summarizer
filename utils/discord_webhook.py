@@ -1,4 +1,5 @@
 import utils.config as config
+from utils.logging import logging
 import requests #dependency
 
 def sendMessage(title, description, doc_url, img_url):
@@ -15,6 +16,7 @@ def sendMessage(title, description, doc_url, img_url):
                 "title": "{}".format(title),
                 "description" : "{}".format(description),
                 "url": "{}".format(doc_url),
+                "timestamp": ''
             }
         ]
         result = requests.post(url, json = data)
@@ -22,6 +24,6 @@ def sendMessage(title, description, doc_url, img_url):
         try:
             result.raise_for_status()
         except Exception as err:
-            print(err)
+            logging.error("Embed failed to send to {}. {}".format(url, err))
         else:
-            print("Payload delivered successfully, code {}.".format(result.status_code))
+            logging.info("Embed sent to {}, with status code {}.".format(url, result.status_code))
