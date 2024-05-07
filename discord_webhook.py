@@ -15,7 +15,6 @@ def sendMessage(title, description, doc_url, img_url):
                 "title": "{}".format(title),
                 "description" : "{}".format(description),
                 "url": "{}".format(doc_url),
-                "image": {"url": img_url}
             }
         ]
         result = requests.post(url, json = data)

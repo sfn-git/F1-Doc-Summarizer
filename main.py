@@ -1,66 +1,119 @@
 from discord_webhook import sendMessage
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
 from sys import exit
-from shutil import rmtree
-from os import mkdir
 import requests
-from pdf2image import convert_from_path
-from upload_img import uploadImg
+from bs4 import BeautifulSoup
+from urllib.parse import quote
+from tika import parser
+from io import StringIO
+import re
+import sys, os
+from discord_webhook import sendMessage
+import config
 
-options = Options()
-options.headless = True
-options.add_argument("disable-infobars")
-options.add_argument("--disable-extensions")
-options.add_argument("--no-sandbox")
+DOCUMENT_ENUMS = ["Summons", "Decision", "Infringement"]
 
-try:
-    driver = webdriver.Chrome(options=options)
+def main():
+    get_latest_fia_doc()
 
-    driver.get("https://www.fia.com/documents/championships/fia-formula-one-world-championship-14/season/season-2022-2005")
-    latest_document = driver.find_element(By.XPATH, "/html/body/div[3]/div/div[3]/div[2]/div/div[3]/div/div[2]/div/ul[1]/li/ul/li/ul/li[1]")
-    title = latest_document.find_element(By.CLASS_NAME,'title').text
-    date = latest_document.find_element(By.CLASS_NAME, "date-display-single").text
-    document_url = latest_document.find_element(By.TAG_NAME, "a")
-    url = document_url.get_attribute("href")
-    description = "{}".format(date)
-    driver.quit()
-except Exception as e:
-    print(e)
-    driver.quit()
-    exit(1)
+def get_latest_fia_doc():
 
-try:
-    last_date = open('last_date', 'r').read()
-    last_title = open('last_title', 'r').read()
-except FileNotFoundError as e:
-    last_date = ""
-    last_title = ""
-
-if((last_date == "" or last_title == "") or (last_date != date and last_title != title)):
-    #get pdf
     try:
-        rmtree('output')
-    except FileNotFoundError:
-        pass
+        base_url = "https://www.fia.com"
+        req = requests.get("{}/documents".format(base_url), allow_redirects=True)
+        req.raise_for_status()
+
+        html = req.content.decode("utf-8")
+        soup = BeautifulSoup(html, 'html.parser')
+
+        # Get Latest Entry List
+        # entry_data = ''
+        # for links in soup.find_all('a'):
+        #     link = links.get('href')
+        #     if "/sites/default/files/decision-document" in link and "Entry List" in link:
+        #         doc_url = "{}{}".format(base_url, quote(link))
+        #         file_name = get_file_from_url(doc_url)
+        #         entry_data = get_pdf_data(file_name).split("No. Driver Nat Team Constructor", 1)[1]
+        
+        # New Docs
+        for links in soup.find_all('a'):
+            link = links.get('href')
+            if "/sites/default/files/decision-document" in link: #and "Miami" in link:
+                check_break = False
+                for enum in DOCUMENT_ENUMS:
+                    if enum in link:
+                        doc_url = "{}{}".format(base_url, quote(link))
+                        file_name = get_file_from_url(doc_url)
+                        data = get_pdf_data(file_name)
+                        doc_summary = summarize_data("Do not greet when responding. In the format of a discord embed, please summarize the text below. Bold each header. Stay strictly to the format below.\nRace: [Name of Race]\nDriver(s) Involved: [Bullet Point Drivers]\nPenalties/Allegation: [Bullet point driver that was punished and the penalties]\nSummary: [Summarize the event that ocurred in the document]\n{}".format(data))
+                        title = link.split('/')
+                        sendMessage(title[len(title)-1].split('.pdf')[0], doc_summary, doc_url, None)
+                        check_break = True
+                        break
+                if check_break: break
+        
+    except requests.exceptions.HTTPError as e:
+        print('Received failed status code from webpage.')
+        exit()
+
+def get_file_from_url (url):
+    #get pdf
+    file_name = 'latest.pdf'
     r = requests.get(url, allow_redirects=True)
-    open('latest.pdf', 'wb').write(r.content)
-    images = convert_from_path('latest.pdf')
-    mkdir('output')
-    img_path=''
-    for img in images:
-        img_path = './output/page.jpg'
-        img.save(img_path, 'JPEG')
-        break
+    file = open(file_name, 'wb').write(r.content)
+    return file_name
 
-    img_url = uploadImg(img_path)
+def summarize_data(prompt):
+    
+    open('prompt.txt', 'w').write(prompt)
+    # create_model()
+    base_url = config.data['OLLAMA_URL']
+    
+    try:
+        tags = requests.get("{}{}".format(base_url, '/api/tags'))
+        tags_response = tags.json()
+        model_name = 'dolphin-phi:latest'
 
-    sendMessage(title, description, url, img_url)
-    last_date = open('last_date', 'w').write(date)
-    last_title = open('last_title', 'w').write(title)
+        for models in tags_response['models']:
+            if config.data['OLLAMA_MODEL'] in models['name']:
+                model_name = models['name']
+                break
+        
+        url = '/api/generate'
+        generate_obj = {
+            "model": model_name,
+            "prompt": "{}".format(prompt),
+            "stream": False
+        }
 
+        generate_res = requests.post("{}{}".format(base_url, url), json=generate_obj)
+        generate_res.raise_for_status()
+        gen_response = generate_res.json()['response']
+        return gen_response
+    except Exception as e:
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        print (exc_type, fname, exc_tb.tb_lineno)
+        return None
 
+# def create_model():
+#     url = 'http://localhost:11434/api/create'
+#     create_obj = {
+#         "name": "fia_doc_summary",
+#         "modelfile": "FROM phi:2.7b"
+#     }
 
+def get_pdf_data(file_name):
 
+    parsed_pdf = parser.from_file(filename=file_name)
+    raw_data = parsed_pdf['content']    
+    s = StringIO(raw_data)
+    return_s = ''
+    for line in s:
+        new_line = line.replace("\n", "")
+        if(len(new_line) == 0):
+            continue
+        return_s += '{} '.format(line)
+    return  re.sub(r"\xa0", " ", return_s)
 
+if __name__=='__main__':
+    main()
