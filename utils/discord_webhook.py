@@ -1,4 +1,4 @@
-import config
+import utils.config as config
 import requests #dependency
 
 def sendMessage(title, description, doc_url, img_url):

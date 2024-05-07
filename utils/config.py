@@ -5,7 +5,7 @@
 import json
   
 # Opening JSON file
-f = open('config.json')
+f = open('../config.json')
   
 # returns JSON object as 
 # a dictionary
