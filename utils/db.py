@@ -153,21 +153,21 @@ def get_all_document_sends(conn):
     cursor.execute(sql)
     return cursor.fetchall()
 
-def get_documents_to_send(conn):
+def get_documents_to_send_ids(conn):
     try:
         cursor = conn.cursor()
         # SQL query to select rows from document_send where sent and skip are both 0
         query = """
-            SELECT *
+            SELECT send_id
             FROM document_send
-            WHERE sent = 0 AND skip = 0
+            WHERE sent = 0 and skip = 0
         """
         cursor.execute(query)
         rows = cursor.fetchall()
         if rows:
             return rows  # Return the raw rows directly
         else:
-            print("No documents found where sent and skip are both 0.")
+            print("No documents found where sent and skip is 0.")
             return []
     except sqlite3.Error as e:
         print(f"Error retrieving documents to send: {e}")

@@ -14,12 +14,11 @@ def sendMessage(url, title, description, doc_url, img_url):
             {
                 "title": "{}".format(title),
                 "description" : "{}".format(description),
-                "url": "{}".format(doc_url),
-                "timestamp": ''
+                "url": "{}".format(doc_url)
             }
         ]
 
-        print(url)
+        print(data)
         result = requests.post(url, json = data)
         result.raise_for_status()
         return True

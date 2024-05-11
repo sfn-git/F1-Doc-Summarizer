@@ -13,6 +13,7 @@ import os
 from io import StringIO
 import re
 from utils.discord_webhook import sendMessage
+from urllib.parse import quote
 
 def get_current_datetime():
     curr_time = datetime.now()
@@ -82,12 +83,12 @@ def process_all_docs():
             if "/sites/default/files/decision-document" in link: #and "Miami" in link:
                 for enum in constants.DOCUMENT_ENUMS:
                     if enum in link:
-                        doc_split = link.split('/')
-                        doc_name = doc_split[len(doc_split)-1].split('.pdf')[0]
                         doc_hash = get_md5_hash(link)
                         db_doc = db.get_document_by_hash(conn, doc_hash)
                         if db_doc == None:
-                            db.insert_document(conn, doc_name, "{}{}".format(constants.BASE_FIA_URL, link), link, doc_hash, doc_time)
+                            doc_split = link.split('/')
+                            doc_name = doc_split[len(doc_split)-1].split('.pdf')[0]
+                            db.insert_document(conn, doc_name, "{}{}".format(constants.BASE_FIA_URL, quote(link)), link, doc_hash, doc_time)
                             db_doc = db.get_document_by_hash(conn, doc_hash)
                             webhooks = db.get_all_webhooks(conn)
                             for wh in webhooks:
