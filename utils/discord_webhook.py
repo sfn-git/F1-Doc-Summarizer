@@ -1,11 +1,10 @@
-import utils.config as config
+import utils.db as db
 from utils.logging import logging
 import requests #dependency
 
-def sendMessage(title, description, doc_url, img_url):
-    urls = config.data["DISCORD_WEBHOOK_URL"]
+def sendMessage(url, title, description, doc_url, img_url):
 
-    for url in urls:
+    try:
         #for all params, see https://discordapp.com/developers/docs/resources/webhook#execute-webhook
         data = {
             "username" : "FIA Document"
@@ -19,11 +18,11 @@ def sendMessage(title, description, doc_url, img_url):
                 "timestamp": ''
             }
         ]
-        result = requests.post(url, json = data)
 
-        try:
-            result.raise_for_status()
-        except Exception as err:
-            logging.error("Embed failed to send to {}. {}".format(url, err))
-        else:
-            logging.info("Embed sent to {}, with status code {}.".format(url, result.status_code))
+        print(url)
+        result = requests.post(url, json = data)
+        result.raise_for_status()
+        return True
+    except Exception as err:
+        logging.error("Embed failed to send. {}".format(err))
+        return False
