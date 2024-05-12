@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% include 'libs.html' %}
+    <title>FIA Doc Manager</title>
+</head>
+
+<body>
+    {% include 'nav.html' %}
+
+    <div class="container">
+        <h1>All Documents</h1>
+        {% for doc in docs %}
+        <p class="d-inline-flex gap-1">
+            <button class="btn btn-primary" type="button" data-bs-toggle="collapse"
+                data-bs-target="#collapseElm{{loop.index}}" aria-expanded="false"
+                aria-controls="collapseElm{{loop.index}}">
+                {{doc.document_name}}
+            </button>
+        </p>
+        <div class="collapse" id="collapseElm{{loop.index}}">
+            <a class="button btn-primary" href="{{doc.document_link}}">View Document</a>
+            <div class="card card-body">
+                <h2>Webhook Status</h2>
+                <div class="table-responsive">
+                    <table class="table table-primary">
+                        <thead>
+                            <tr>
+                                <th scope="col">Webhook Name</th>
+                                <th scope="col">Sent Status</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {%for wh in doc.webhooks%}
+
+                                <tr>
+                                    <td>{{wh.webhook_name}}</td>
+                                    <td>
+                                        {%if wh.skip == 1%}
+                                            <span class="badge text-bg-primary">Skipped Send</span>
+                                        {%elif wh.sent == 1%}
+                                            <span class="badge text-bg-success">Sent</span>
+                                        {%else%}
+                                            <span class="badge text-bg-warning">Pending</span>
+                                        {%endif%}
+                                    </td>
+                                    <td>
+                                        <a class="btn btn-primary" href="/send?id={{wh.send_id}}">Send</a>
+                                    </td>
+                                </tr>
+                            {%endfor%}
+                        </tbody>
+                    </table>
+                </div>
+
+                
+            </div>
+        </div>
+        <br>
+        {% endfor %}
+    </div>
+
+
+</body>
+
+</html>
