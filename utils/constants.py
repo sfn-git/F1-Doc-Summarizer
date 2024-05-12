@@ -35,7 +35,19 @@ CREATE_DOCUMENTS_SEND_TABLE = """CREATE TABLE IF NOT EXISTS document_send(
     CONSTRAINT webhook_fk
         FOREIGN KEY (wh_id) REFERENCES webhooks (wh_id)
     CONSTRAINT docs_fk
-    FOREIGN KEY (doc_id) REFERENCES webhooks (doc_id)
+    FOREIGN KEY (doc_id) REFERENCES documents (doc_id)
+)"""
+CREATE_DOC_SUMMARY_TABLE="""CREATE TABLE IF NOT EXISTS document_summary(
+    summary_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    doc_id INTEGER,
+    prompt TEXT,
+    summary TEXT,
+    date DATE,
+    ollama_url TEXT,
+    ollama_model TEXT,
+    CONSTRAINT docs_fk
+    FOREIGN KEY (doc_id) REFERENCES documents (doc_id)
+
 )"""
 
 BASE_FIA_URL = "https://www.fia.com"

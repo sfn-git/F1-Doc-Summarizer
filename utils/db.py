@@ -59,13 +59,13 @@ def delete_webhook_by_id(conn, wh_id):
         conn.commit()
         # Check if any rows were affected
         if cursor.rowcount > 0:
-            print(f"Webhook with wh_id = {wh_id} deleted successfully.")
+            logging.info(f"Webhook with wh_id = {wh_id} deleted successfully.")
         else:
-            print(f"No webhook found with wh_id = {wh_id}. No deletion performed.")
+            logging.warn(f"No webhook found with wh_id = {wh_id}. No deletion performed.")
     except sqlite3.Error as e:
         # Rollback the transaction in case of error
         conn.rollback()
-        print(f"Error deleting webhook: {e}")
+        logging.error(f"Error deleting webhook: {e}")
 
 # Function to update values of a webhook by its ID
 def update_webhook_by_id(conn, wh_id, new_name=None, new_link=None):
@@ -109,7 +109,7 @@ def get_webhook_by_name(conn, webhook_name):
 
         return row
     except sqlite3.Error as e:
-        print(f"Error retrieving webhook: {e}")
+        logging.error(f"Error retrieving webhook: {e}")
         return None
 
 # Function to insert into documents table
@@ -167,10 +167,10 @@ def get_documents_to_send_ids(conn):
         if rows:
             return rows  # Return the raw rows directly
         else:
-            print("No documents found where sent and skip is 0.")
+            logging.info("No documents found where sent and skip is 0.")
             return []
     except sqlite3.Error as e:
-        print(f"Error retrieving documents to send: {e}")
+        logging.error(f"Error retrieving documents to send: {e}")
         return []
 
 def update_document_send_by_id(conn, send_id, new_sent_value, new_skip_value):
@@ -185,12 +185,12 @@ def update_document_send_by_id(conn, send_id, new_sent_value, new_skip_value):
         cursor.execute(query, (new_sent_value, new_skip_value, send_id))
         conn.commit()
         if cursor.rowcount > 0:
-            print(f"sent and skip columns updated successfully for send_id = {send_id}.")
+            logging.info(f"sent and skip columns updated successfully for send_id = {send_id}.")
         else:
-            print(f"No document_send row found with send_id = {send_id}. No update performed.")
+            logging.warn(f"No document_send row found with send_id = {send_id}. No update performed.")
     except sqlite3.Error as e:
         conn.rollback()
-        print(f"Error updating document_send sent and skip columns: {e}")
+        logging.error(f"Error updating document_send sent and skip columns: {e}")
 
 def update_document_send_date_by_send_id(conn, send_id):
     try:
@@ -204,12 +204,12 @@ def update_document_send_date_by_send_id(conn, send_id):
         cursor.execute(query, (current_time, send_id))
         conn.commit()
         if cursor.rowcount > 0:
-            print(f"Date updated successfully for send_id = {send_id}.")
+            logging.info(f"Date updated successfully for send_id = {send_id}.")
         else:
-            print(f"No document_send row found with send_id = {send_id}. No update performed.")
+            logging.info(f"No document_send row found with send_id = {send_id}. No update performed.")
     except sqlite3.Error as e:
         conn.rollback()
-        print(f"Error updating document_send date column: {e}")
+        logging.error(f"Error updating document_send date column: {e}")
 
 # Function to retrieve the 'env' column value
 def get_config_env(conn):
@@ -298,7 +298,6 @@ def update_config_column(conn, column_name, new_value):
 def join_document_send_documents_webhooks(conn, send_id=None):
     try:
         cursor = conn.cursor()
-
         if send_id == None:
             # SQL query to join document_send, documents, and webhooks tables and sort by document_date DESC and webhook date_added DESC
             query = """
@@ -309,7 +308,7 @@ def join_document_send_documents_webhooks(conn, send_id=None):
                 FROM document_send AS ds
                 JOIN webhooks AS w ON ds.wh_id = w.wh_id
                 JOIN documents AS d ON ds.doc_id = d.doc_id
-                ORDER BY d.doc_id, d.document_date DESC, w.date_added DESC
+                ORDER BY d.document_date DESC, w.date_added DESC
             """
             cursor.execute(query)
         else:
@@ -327,7 +326,6 @@ def join_document_send_documents_webhooks(conn, send_id=None):
 
         
         rows = cursor.fetchall()
-        
         # Dictionary to store document data by doc_id
         document_data = {}
 
@@ -365,10 +363,12 @@ def join_document_send_documents_webhooks(conn, send_id=None):
         # Convert document_data dictionary values to a list of documents
         result = list(document_data.values())
 
+        print(result)
+
         return result
 
     except sqlite3.Error as e:
-        print(f"Error executing SQL query: {e}")
+        logging.error(f"Error executing SQL query: {e}")
         return None
 
 def get_document_by_id(conn, doc_id):
@@ -409,11 +409,11 @@ def get_document_by_id(conn, doc_id):
             }
             return document_info
         else:
-            print(f"No document found with doc_id {doc_id}")
+            logging.warn(f"No document found with doc_id {doc_id}")
             return None
 
     except sqlite3.Error as e:
-        print(f"Error executing SQL query: {e}")
+        logging.error(f"Error executing SQL query: {e}")
         return None
 
 def search_document_send(conn, wh_id, doc_id):
@@ -447,6 +447,40 @@ def search_document_send(conn, wh_id, doc_id):
     except sqlite3.Error as e:
         logging.error(f"Error executing SQL query: {e}")
         return None
+    
+def get_document_summary_by_doc_id(conn, doc_id):
+    try:
+        cursor = conn.cursor()
+        query = """
+            SELECT summary_id, doc_id, prompt, summary, date, ollama_url, ollama_model
+            FROM document_summary
+            WHERE doc_id = ?
+        """
+        cursor.execute(query, (doc_id,))
+        rows = cursor.fetchone()
+        if rows:
+            return rows
+        else:
+            logging.info(f"No document summaries found for doc_id = {doc_id}.")
+            return None
+    except sqlite3.Error as e:
+        logging.error(f"Error retrieving document summaries: {e}")
+        return None
+    
+def insert_document_summary(conn, doc_id, summary, prompt, ollama_url, ollama_model):
+    try:
+        cursor = conn.cursor()
+        current_date = now()
+        query = """
+            INSERT INTO document_summary (doc_id, prompt, summary, date, ollama_url, ollama_model)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """
+        cursor.execute(query, (doc_id, prompt, summary, current_date, ollama_url, ollama_model))
+        conn.commit()
+        logging.info(f"Document summary inserted successfully for doc_id = {doc_id}.")
+    except sqlite3.Error as e:
+        conn.rollback()
+        logging.error(f"Error inserting document summary: {e}")
 #CHATGPT GENERATED CODE END#
 
 def get_config_obj(conn):
@@ -472,6 +506,7 @@ def get_conn():
         cur.execute(constants.CREATE_WEBHOOKS_TABLE)
         cur.execute(constants.CREATE_DOCUMENTS_TABLE)
         cur.execute(constants.CREATE_DOCUMENTS_SEND_TABLE)
+        cur.execute(constants.CREATE_DOC_SUMMARY_TABLE)
         
         insert_config(con, 'dev', False, True, '', '')
         con.commit()

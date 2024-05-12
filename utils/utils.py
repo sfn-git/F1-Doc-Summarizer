@@ -167,19 +167,26 @@ def summarize_data(prompt):
 def build_prompt(pdf_data):
     prompt = "Do not greet when responding. {} Bold each header. Stay strictly to the format below.\nRace: [<Year> Name of Race]\nDriver(s) Involved: [Only list the name of the Driver or car number if the name is not available]\nPenalties/Allegation/Decision: [Bullet point driver that was punished and the penalties]\nSummary: [Summarize the event that ocurred in the document]\n{}".format(get_fun_prompt(), pdf_data)
     return prompt
+    
 def send_document(send_id):
     conn = db.get_conn()
     send_row = db.join_document_send_documents_webhooks(conn, send_id)[0]
-    print(send_row)
     webhook_url = send_row["webhooks"][0]["webhook_link"]
     title = send_row["document_name"]
     doc_url = send_row["document_link"]
-
-    file_path = get_file_from_url(doc_url)
-    pdf_data = get_pdf_data(file_path)
-    print(webhook_url)
-    print(title)
-    status = sendMessage(webhook_url, title, summarize_data(build_prompt(pdf_data)), doc_url, None)
+    doc_id = send_row["doc_id"]
+    doc_summary = db.get_document_summary_by_doc_id(conn, doc_id)
+    if doc_summary is None or doc_summary[3] == "":
+        file_path = get_file_from_url(doc_url)
+        pdf_data = get_pdf_data(file_path)
+        prompt = build_prompt(pdf_data)
+        summary = summarize_data(prompt)
+        ollama_url = db.get_config_ollama_url(conn)
+        ollama_model = db.get_config_ollama_model(conn)
+        db.insert_document_summary(conn, doc_id, summary, prompt, ollama_url, ollama_model)
+    else:
+        summary = doc_summary[3]
+    status = sendMessage(webhook_url, title, summary, doc_url, None)
     if status:
         send_id = send_row["webhooks"][0]["send_id"]
         db.update_document_send_by_id(conn, send_id, 1, 0)

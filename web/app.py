@@ -1,10 +1,10 @@
 from flask import Flask, render_template, request, redirect
 import utils.db as db
-import utils.constants as const
 import utils.utils as utils 
 
 app = Flask(__name__)
 
+# Routes
 @app.route("/")
 def index():
     utils.process_all_docs()
@@ -62,3 +62,7 @@ def update_webhooks():
     webhook_url = request.form["wb-url"]
     db.update_webhook_by_id(conn, id, webhook_name, webhook_url)
     return redirect("/config")
+
+@app.route("/schedule", methods = ["GET"])
+def schedule():
+    return render_template("schedule.html")
