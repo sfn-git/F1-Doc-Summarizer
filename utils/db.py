@@ -363,8 +363,6 @@ def join_document_send_documents_webhooks(conn, send_id=None):
         # Convert document_data dictionary values to a list of documents
         result = list(document_data.values())
 
-        print(result)
-
         return result
 
     except sqlite3.Error as e:

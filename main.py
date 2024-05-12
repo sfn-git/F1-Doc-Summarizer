@@ -1,8 +1,6 @@
 import utils.db as db
-from utils.discord_webhook import sendMessage
-from sys import exit
-from utils.logging import logging
 import utils.utils as utils
+from utils.logging import logging
 from web.app import app
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -34,7 +32,6 @@ def get_latest_fia_docs():
         utils.process_all_docs()
         conn = db.get_conn()
         doc_ids = db.get_documents_to_send_ids(conn)
-
         for id in doc_ids:
             utils.send_document(id[0])
     except Exception as e:

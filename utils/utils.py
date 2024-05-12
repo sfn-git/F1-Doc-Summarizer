@@ -1,18 +1,17 @@
-from datetime import datetime
 import pytz
-from random import choice, randint
-from utils.logging import logging
 import requests
-from bs4 import BeautifulSoup
 import utils.constants as constants
 import utils.db as db
+import os
+import re
+from datetime import datetime
+from random import choice, randint
+from utils.logging import logging
+from bs4 import BeautifulSoup
 from hashlib import md5
 from sys import exc_info
 from tika import parser
-import os
 from io import StringIO
-import re
-from utils.discord_webhook import sendMessage
 from urllib.parse import quote
 
 def get_current_datetime():
@@ -60,7 +59,7 @@ def parse_date_with_timezone(date_string, date_format, timezone_name):
         localized_datetime = timezone.localize(datetime_obj)
         return localized_datetime
     except ValueError as e:
-        print(f"Error parsing date: {e}")
+        logging.error(f"Error parsing date: {e}")
         return None
 
 def process_all_docs():
@@ -168,6 +167,27 @@ def build_prompt(pdf_data):
     prompt = "Do not greet when responding. {} Bold each header. Stay strictly to the format below.\nRace: [<Year> Name of Race]\nDriver(s) Involved: [Only list the name of the Driver or car number if the name is not available]\nPenalties/Allegation/Decision: [Bullet point driver that was punished and the penalties]\nSummary: [Summarize the event that ocurred in the document]\n{}".format(get_fun_prompt(), pdf_data)
     return prompt
     
+def sendMessage(url, title, description, doc_url, img_url):
+
+    try:
+        #for all params, see https://discordapp.com/developers/docs/resources/webhook#execute-webhook
+        data = {
+            "username" : "FIA Document"
+        }
+        data["embeds"] = [
+            {
+                "title": "{}".format(title),
+                "description" : "{}".format(description),
+                "url": "{}".format(doc_url)
+            }
+        ]
+        result = requests.post(url, json = data)
+        result.raise_for_status()
+        return True
+    except Exception as err:
+        logging.error("Embed failed to send. {}".format(err))
+        return False
+
 def send_document(send_id):
     conn = db.get_conn()
     send_row = db.join_document_send_documents_webhooks(conn, send_id)[0]
@@ -192,4 +212,3 @@ def send_document(send_id):
         db.update_document_send_by_id(conn, send_id, 1, 0)
         db.update_document_send_date_by_send_id(conn, send_id)
     return True
-
