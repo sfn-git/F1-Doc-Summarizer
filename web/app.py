@@ -10,6 +10,7 @@ def index():
     utils.process_all_docs()
     docs = db.join_document_send_documents_webhooks(db.get_conn())
     return render_template("index.html", docs = docs)
+
 @app.route("/send")
 def send():
     conn = db.get_conn()
@@ -17,22 +18,26 @@ def send():
     utils.send_document(send_id)
     return redirect("/")
 
-@app.route("/config")
+@app.route("/config/ollama", methods = ["GET", "POST"])
+def config_ollama():
+    conn = db.get_conn()
+    if request.method == "POST":
+        ollama_url = request.form["ollama-url"]
+        ollama_model = request.form["ollama-tag"]
+        db.update_config_ollama_url(conn, ollama_url)
+        db.update_config_ollama_model(conn, ollama_model)
+        return redirect("/config/ollama")
+    else:
+        configs = db.get_config_obj(conn)
+        ollama_tags = utils.get_ollama_tags(configs["OLLAMA_URL"])
+        return render_template("ollama.html", configs=configs, ollama_tags = ollama_tags)
+
+@app.route("/config/webhooks")
 def config():
     conn = db.get_conn()
     configs = db.get_config_obj(conn)
-    ollama_tags = utils.get_ollama_tags(configs["OLLAMA_URL"])
     webhooks = db.get_all_webhooks(conn)
-    return render_template("config.html", configs=configs, ollama_tags = ollama_tags, webhooks=webhooks)
-
-@app.route("/config/ollama", methods = ["POST"])
-def config_ollama():
-    conn = db.get_conn()
-    ollama_url = request.form["ollama-url"]
-    ollama_model = request.form["ollama-tag"]
-    db.update_config_ollama_url(conn, ollama_url)
-    db.update_config_ollama_model(conn, ollama_model)
-    return redirect("/config")
+    return render_template("webhooks.html", configs=configs, webhooks=webhooks)
 
 @app.route("/config/add/webhook", methods = ["POST"])
 def add_webhooks():
@@ -42,7 +47,6 @@ def add_webhooks():
     db.insert_webhook(conn, webhook_name, webhook_url)
     wh = db.get_webhook_by_name(conn, webhook_name)
     docs = db.get_all_documents(conn)
-
     for doc in docs:
         db.insert_document_send(conn, wh[0], doc[0], False, True)
     return redirect("/config")
@@ -63,6 +67,6 @@ def update_webhooks():
     db.update_webhook_by_id(conn, id, webhook_name, webhook_url)
     return redirect("/config")
 
-@app.route("/schedule", methods = ["GET"])
+@app.route("/config/schedule", methods = ["GET"])
 def schedule():
     return render_template("schedule.html")

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% include 'libs.html' %}
+    <title>Config - FIA Doc Manager</title>
+</head>
+
+<body>
+    {% include 'nav.html' %}
+    <div class="container">
+        <h1>Ollama Configurations</h1>
+        <small id="helpId" class="form-text text-muted">Configuration Last Edited: {{configs["LAST_UPDATED"]}}</small>
+    </div>
+
+    <div class="container" id="manage-ollama">
+        <h4>Ollama Settings</h4>
+        <form action="/config/ollama" method="post">
+            <div class="row">
+                <div class="col-8">
+                    <label for="ollama-url" class="form-label">Ollama URL</label>
+                    <input type="text" class="form-control" name="ollama-url" id="ollama-url" aria-describedby="helpId"
+                        placeholder="http://localhost:11434" value="{{configs.OLLAMA_URL}}" />
+                    <small id="helpId" class="form-text text-muted">A blank or invalid URL will result in the summary being skipped.</small>
+                </div>
+                <div class="col-4">
+                    <label for="ollama-url" class="form-label">Ollama Tag</label>
+                    <select class="form-select" aria-label="Default select example" name="ollama-tag">
+                        <option value=""></option>
+                        {%for tag in ollama_tags.models%}
+                            <option value="{{tag.model}}" {% if tag.model == configs.OLLAMA_TAG%}selected{%endif%}>{{tag.name}}</option>
+                        {%endfor%}
+                    </select>
+                    <small id="helpId" class="form-text text-muted">Add a Ollama URL to allow for models from your instance to be selected</small>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-4">
+                    <button type="submit" class="btn btn-primary">Update Ollama Settings</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</body>
+
+</html>
