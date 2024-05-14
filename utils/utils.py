@@ -14,6 +14,11 @@ from tika import parser
 from io import StringIO
 from urllib.parse import quote
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.schedulers.background import BackgroundScheduler
+
+#Scheduler
+sched = BackgroundScheduler(daemon=True)
+sched.start()
 
 def get_current_datetime():
     curr_time = datetime.now()
@@ -225,7 +230,7 @@ def get_latest_fia_docs():
     except Exception as e:
         logging.error('An error ocurred in the job process: {}'.format(e))
 
-def update_jobs(sched):
+def update_jobs():
     
     conn = db.get_conn()
 
@@ -238,6 +243,6 @@ def update_jobs(sched):
             trigger = CronTrigger.from_crontab(job[2])
         except Exception as e:
             continue
-        sched.add_job(get_latest_fia_docs, trigger=trigger, id=job_id, name=job_name)
+        sched.add_job(get_latest_fia_docs, trigger=trigger, id=f"{job_id}", name=job_name)
     sched.start()
     return True

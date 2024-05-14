@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, redirect
 import utils.db as db
 import utils.utils as utils
-from main import sched 
 
 app = Flask(__name__)
 
@@ -89,7 +88,7 @@ def update_schedules():
     schedule_name = request.form["schedule-name"]
     schedule_cron = request.form["schedule-cron"]
     db.update_schedule_row(conn, id, schedule_name, schedule_cron)
-    utils.update_jobs(sched)
+    utils.update_jobs()
     return redirect("/config/schedule")
 
 @app.route("/config/delete/schedule", methods = ["GET"])
@@ -97,5 +96,5 @@ def delete_schedule():
     conn = db.get_conn()
     id = request.args.get("id")
     db.delete_schedule_row_by_id(conn, id)
-    utils.update_jobs(sched)
+    utils.update_jobs()
     return redirect("/config/schedule")
