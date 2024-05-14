@@ -49,6 +49,14 @@ CREATE_DOC_SUMMARY_TABLE="""CREATE TABLE IF NOT EXISTS document_summary(
     FOREIGN KEY (doc_id) REFERENCES documents (doc_id)
 
 )"""
+CREATE_SCHEDULE_TABLE="""CREATE TABLE IF NOT EXISTS schedule(
+    job_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    job_name TEXT,
+    cron_timing TEXT,
+    date_added DATE,
+    date_updated DATE
+)
+"""
 
 BASE_FIA_URL = "https://www.fia.com"
 DOCUMENT_ENUMS = ["Summons", "Decision", "Infringement"]

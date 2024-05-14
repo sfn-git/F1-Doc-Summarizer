@@ -13,6 +13,7 @@ from sys import exc_info
 from tika import parser
 from io import StringIO
 from urllib.parse import quote
+from apscheduler.triggers.cron import CronTrigger
 
 def get_current_datetime():
     curr_time = datetime.now()
@@ -211,4 +212,32 @@ def send_document(send_id):
         send_id = send_row["webhooks"][0]["send_id"]
         db.update_document_send_by_id(conn, send_id, 1, 0)
         db.update_document_send_date_by_send_id(conn, send_id)
+    return True
+
+def get_latest_fia_docs():
+    try:
+        logging.info("Running FIA Docs Job")
+        process_all_docs()
+        conn = db.get_conn()
+        doc_ids = db.get_documents_to_send_ids(conn)
+        for id in doc_ids:
+            send_document(id[0])
+    except Exception as e:
+        logging.error('An error ocurred in the job process: {}'.format(e))
+
+def update_jobs(sched):
+    
+    conn = db.get_conn()
+
+    sched.shutdown()
+    jobs = db.get_all_schedule_rows(conn)
+    for job in jobs:
+        job_id = job[0]
+        job_name = job[1]
+        try:
+            trigger = CronTrigger.from_crontab(job[2])
+        except Exception as e:
+            continue
+        sched.add_job(get_latest_fia_docs, trigger=trigger, id=job_id, name=job_name)
+    sched.start()
     return True

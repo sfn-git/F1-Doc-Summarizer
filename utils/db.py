@@ -479,6 +479,75 @@ def insert_document_summary(conn, doc_id, summary, prompt, ollama_url, ollama_mo
     except sqlite3.Error as e:
         conn.rollback()
         logging.error(f"Error inserting document summary: {e}")
+def insert_schedule_row(conn, job_name, cron_timing):
+    try:
+        cursor = conn.cursor()
+        current_date = now()
+        query = """
+            INSERT INTO schedule (job_name, cron_timing, date_added, date_updated)
+            VALUES (?, ?, ?, ?)
+        """
+        cursor.execute(query, (job_name, cron_timing, current_date, current_date))
+        conn.commit()
+        logging.info(f"Row inserted successfully into schedule table for job_name = {job_name}.")
+    except sqlite3.Error as e:
+        conn.rollback()
+        logging.error(f"Error inserting row into schedule table: {e}")
+def get_all_schedule_rows(conn):
+    try:
+        cursor = conn.cursor()
+        query = """
+            SELECT job_id, job_name, cron_timing, date_added, date_updated
+            FROM schedule
+        """
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        return rows
+    except sqlite3.Error as e:
+        logging.error(f"Error retrieving rows from schedule table: {e}")
+        return []
+def update_schedule_row(conn, job_id, job_name, cron_timing):
+    try:
+        cursor = conn.cursor()
+        current_date = now()
+        query = """
+            UPDATE schedule
+            SET job_name = ?, cron_timing = ?, date_updated = ?
+            WHERE job_id = ?
+        """
+        cursor.execute(query, (job_name, cron_timing, current_date, job_id))
+        conn.commit()
+        logging.info(f"Schedule row updated successfully for job_id = {job_id}.")
+    except sqlite3.Error as e:
+        conn.rollback()
+        logging.error(f"Error updating schedule row: {e}")
+def delete_schedule_row_by_id(conn, job_id):
+    try:
+        cursor = conn.cursor()
+        query = """
+            DELETE FROM schedule
+            WHERE job_id = ?
+        """
+        cursor.execute(query, (job_id,))
+        conn.commit()
+        logging.info(f"Schedule row deleted successfully for job_id = {job_id}.")
+    except sqlite3.Error as e:
+        conn.rollback()
+        logging.error(f"Error deleting schedule row: {e}")
+def get_schedule_row_by_id(conn, job_id):
+    try:
+        cursor = conn.cursor()
+        query = """
+            SELECT job_id, job_name, cron_timing, date_added, date_updated
+            FROM schedule
+            WHERE job_id = ?
+        """
+        cursor.execute(query, (job_id,))
+        row = cursor.fetchone()
+        return row
+    except sqlite3.Error as e:
+        logging.error(f"Error retrieving schedule row by id: {e}")
+        return None
 #CHATGPT GENERATED CODE END#
 
 def get_config_obj(conn):
@@ -497,16 +566,21 @@ if not os.path.exists('./config'):
     os.makedirs('./config')
 
 def get_conn():
+    first_run = False
     if not os.path.exists(CONFIG_FILE_PATH):
-        con = sqlite3.connect(CONFIG_FILE_PATH)
-        cur = con.cursor()
-        cur.execute(constants.CREATE_CONFIG_TABLE)
-        cur.execute(constants.CREATE_WEBHOOKS_TABLE)
-        cur.execute(constants.CREATE_DOCUMENTS_TABLE)
-        cur.execute(constants.CREATE_DOCUMENTS_SEND_TABLE)
-        cur.execute(constants.CREATE_DOC_SUMMARY_TABLE)
-        
-        insert_config(con, 'dev', False, True, '', '')
-        con.commit()
-        con.close()
+        first_run = True
+    conn = sqlite3.connect(CONFIG_FILE_PATH)
+    cur = conn.cursor()
+    cur.execute(constants.CREATE_CONFIG_TABLE)
+    cur.execute(constants.CREATE_WEBHOOKS_TABLE)
+    cur.execute(constants.CREATE_DOCUMENTS_TABLE)
+    cur.execute(constants.CREATE_DOCUMENTS_SEND_TABLE)
+    cur.execute(constants.CREATE_DOC_SUMMARY_TABLE)
+    cur.execute(constants.CREATE_SCHEDULE_TABLE)
+
+    if first_run:
+        insert_config(conn, 'dev', False, True, '', '')
+    
+    conn.commit()
+    conn.close()
     return sqlite3.connect(CONFIG_FILE_PATH)

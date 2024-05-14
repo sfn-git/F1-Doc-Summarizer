@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect
 import utils.db as db
-import utils.utils as utils 
+import utils.utils as utils
+from main import sched 
 
 app = Flask(__name__)
 
@@ -49,14 +50,14 @@ def add_webhooks():
     docs = db.get_all_documents(conn)
     for doc in docs:
         db.insert_document_send(conn, wh[0], doc[0], False, True)
-    return redirect("/config")
+    return redirect("/config/webhooks")
 
 @app.route("/config/delete/webhook", methods = ["GET"])
 def delete_webhooks():
     conn = db.get_conn()
     id = request.args.get("id")
     db.delete_webhook_by_id(conn, id)
-    return redirect("/config")
+    return redirect("/config/webhooks")
 
 @app.route("/config/update/webhook", methods = ["POST"])
 def update_webhooks():
@@ -65,8 +66,36 @@ def update_webhooks():
     webhook_name = request.form["wb-name"]
     webhook_url = request.form["wb-url"]
     db.update_webhook_by_id(conn, id, webhook_name, webhook_url)
-    return redirect("/config")
+    return redirect("/config/webhooks")
 
 @app.route("/config/schedule", methods = ["GET"])
 def schedule():
-    return render_template("schedule.html")
+    conn = db.get_conn()
+    schedules = db.get_all_schedule_rows(conn)
+    return render_template("schedule.html", schedules = schedules)
+
+@app.route("/config/add/schedule", methods = ["POST"])
+def add_schedule():
+    conn = db.get_conn()
+    schedule_name = request.form["schedule-name"]
+    schedule_cron = request.form["schedule-cron"]
+    db.insert_schedule_row(conn, schedule_name, schedule_cron)
+    return redirect("/config/schedule")
+
+@app.route("/config/update/schedule", methods = ["POST"])
+def update_schedules():
+    conn = db.get_conn()
+    id = request.args.get("id")
+    schedule_name = request.form["schedule-name"]
+    schedule_cron = request.form["schedule-cron"]
+    db.update_schedule_row(conn, id, schedule_name, schedule_cron)
+    utils.update_jobs(sched)
+    return redirect("/config/schedule")
+
+@app.route("/config/delete/schedule", methods = ["GET"])
+def delete_schedule():
+    conn = db.get_conn()
+    id = request.args.get("id")
+    db.delete_schedule_row_by_id(conn, id)
+    utils.update_jobs(sched)
+    return redirect("/config/schedule")
