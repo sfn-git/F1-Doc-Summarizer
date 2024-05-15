@@ -21,10 +21,10 @@
                 {{doc.document_name}}
             </button>
         </p>
-        <div class="collapse {%if loop.index0 < 3 %}show{%endif%}" id="collapseElm{{loop.index}}">
-            <a class="button btn-primary" href="{{doc.document_link}}">View Document</a>
+        <div class="collapse show" id="collapseElm{{loop.index}}">
             <div class="card card-body">
-                <h2>{{doc.document_name}}</h2>
+                <h2><a class="button btn-primary" href="{{doc.document_link}}" target="_blank">{{doc.document_name}}</a></h2>
+                <p>{{doc.document_date}}</p>
                 <div class="table-responsive">
                     <table class="table table-primary">
                         <thead>

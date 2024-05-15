@@ -201,12 +201,13 @@ def send_document(send_id):
     title = send_row["document_name"]
     doc_url = send_row["document_link"]
     doc_id = send_row["doc_id"]
+    doc_time = send_row["document_date"]
     doc_summary = db.get_document_summary_by_doc_id(conn, doc_id)
     if doc_summary is None or doc_summary[3] == "":
         file_path = get_file_from_url(doc_url)
         pdf_data = get_pdf_data(file_path)
         prompt = build_prompt(pdf_data)
-        summary = summarize_data(prompt)
+        summary = f"{doc_time}\n\n{summarize_data(prompt)}"
         ollama_url = db.get_config_ollama_url(conn)
         ollama_model = db.get_config_ollama_model(conn)
         db.insert_document_summary(conn, doc_id, summary, prompt, ollama_url, ollama_model)

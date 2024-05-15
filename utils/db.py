@@ -161,6 +161,9 @@ def get_documents_to_send_ids(conn):
             SELECT send_id
             FROM document_send
             WHERE sent = 0 and skip = 0
+            ORDER BY (
+                SELECT document_date FROM documents WHERE documents.doc_id = document_send.doc_id
+            ) ASC
         """
         cursor.execute(query)
         rows = cursor.fetchall()
