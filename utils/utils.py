@@ -13,6 +13,12 @@ from sys import exc_info
 from tika import parser
 from io import StringIO
 from urllib.parse import quote
+from apscheduler.triggers.cron import CronTrigger
+from apscheduler.schedulers.background import BackgroundScheduler
+
+#Scheduler
+sched = BackgroundScheduler(daemon=True)
+sched.start()
 
 def get_current_datetime():
     curr_time = datetime.now()
@@ -195,12 +201,13 @@ def send_document(send_id):
     title = send_row["document_name"]
     doc_url = send_row["document_link"]
     doc_id = send_row["doc_id"]
+    doc_time = send_row["document_date"]
     doc_summary = db.get_document_summary_by_doc_id(conn, doc_id)
     if doc_summary is None or doc_summary[3] == "":
         file_path = get_file_from_url(doc_url)
         pdf_data = get_pdf_data(file_path)
         prompt = build_prompt(pdf_data)
-        summary = summarize_data(prompt)
+        summary = f"{doc_time}\n\n{summarize_data(prompt)}"
         ollama_url = db.get_config_ollama_url(conn)
         ollama_model = db.get_config_ollama_model(conn)
         db.insert_document_summary(conn, doc_id, summary, prompt, ollama_url, ollama_model)
@@ -211,4 +218,51 @@ def send_document(send_id):
         send_id = send_row["webhooks"][0]["send_id"]
         db.update_document_send_by_id(conn, send_id, 1, 0)
         db.update_document_send_date_by_send_id(conn, send_id)
+    return True
+
+def queue_document(send_id):
+    conn = db.get_conn()
+    queue_row = db.join_document_send_documents_webhooks(conn, send_id)[0]
+    if queue_row is None:
+        logging.warn(f'Not queuing send id {send_id} as it does not exist')
+    else:
+        db.update_document_send_by_id(conn, send_id, 0, 0)
+    return True
+
+def cancel_document(send_id):
+    conn = db.get_conn()
+    queue_row = db.join_document_send_documents_webhooks(conn, send_id)[0]
+    if queue_row is None:
+        logging.warn(f'Not queuing send id {send_id} as it does not exist')
+    else:
+        db.update_document_send_by_id(conn, send_id, 0, 1)
+    return True
+
+def get_latest_fia_docs():
+    try:
+        logging.info("Running FIA Docs Job")
+        process_all_docs()
+        conn = db.get_conn()
+        doc_ids = db.get_documents_to_send_ids(conn)
+        for id in doc_ids:
+            send_document(id[0])
+    except Exception as e:
+        logging.error('An error ocurred in the job process: {}'.format(e))
+
+def update_jobs():
+    
+    conn = db.get_conn()
+    jobs = db.get_all_schedule_rows(conn)
+
+    sched.remove_all_jobs()
+
+    for job in jobs:
+        job_id = job[0]
+        job_name = job[1]
+        try:
+            trigger = CronTrigger.from_crontab(job[2])
+        except Exception as e:
+            logging.warn(f"Job ({job_name}) was not added to the scheduler.")
+            continue
+        sched.add_job(get_latest_fia_docs, trigger=trigger, id=f"{job_id}", name=job_name)
     return True

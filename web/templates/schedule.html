@@ -15,6 +15,56 @@
         <h1>Manage Schedule</h1>
     </div>
 
+    <div class="container">
+        <h4>Add a Schedule</h4>
+        <form action="/config/add/schedule" method="post">
+            <div class="row">
+                <div class="col-3">
+                    <label for="schedule-name" class="form-label">Schedule Name</label>
+                    <input type="text" class="form-control" name="schedule-name" id="schedule-name" aria-describedby="helpId"
+                        placeholder="" />
+                </div>
+                <div class="col">
+                    <label for="schedule-cron" class="form-label">Cron Syntax (Example for one a minute on Friday, Saturday, and Sunday <a href="https://crontab.guru/#*_*_*_*_5,6,0" target="_blank">[* * * * 5,6,0]</a>)</label>
+                    <input type="text" class="form-control" name="schedule-cron" id="schedule-cron" aria-describedby="helpId"
+                        placeholder="" />
+                </div>
+                <button type="submit" class="btn btn-primary my-3">Add schedule</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="container">
+        <h4>Manage Schedules</h4>
+        {% for schedule in schedules%}
+            <form action="/config/update/schedule?id={{schedule[0]}}" method="post">
+                <div class="row">
+                    <div class="col-3">
+                        <label for="schedule-name" class="form-label">Schedule Name</label>
+                        <input type="text" class="form-control" name="schedule-name" id="schedule-name" aria-describedby="helpId"
+                            placeholder="" value="{{schedule[1]}}"/>
+                    </div>
+                    <div class="col-9">
+                        <label for="schedule-cron" class="form-label">Schedule Cron. Note: You can make the cron string invalid to disable it. (<a href="https://crontab.guru/#{{schedule[2]}}" target="_blank">View this timing</a>)</label>
+                        <input type="text" class="form-control" name="schedule-cron" id="schedule-cron" aria-describedby="helpId"
+                            placeholder="* * * * 5,6,0" value="{{schedule[2]}}"/>
+                    </div>
+                </div>
+                <br>
+                <div class="row">
+                    <div class="col-1">
+                        <label for="schedule-url" class="form-label"></label>
+                        <button type="submit" class="btn btn-primary">Update</button>
+                    </div>
+                    <div class="col-1">
+                        <label for="schedule-url" class="form-label"></label>
+                        <button type="button" class="btn btn-danger" onclick="if(confirm('Remove Scheduled Item: {{schedule[1]}}?')){window.location.href='/config/delete/schedule?id={{schedule[0]}}'}">Delete</button>
+                    </div>
+                </div>
+            </form>
+        {%endfor%}
+    </div>
+
 
 </body>
 
