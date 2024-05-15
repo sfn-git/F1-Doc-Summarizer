@@ -1,4 +1,8 @@
 import logging
+import os
+
+if not os.path.exists('./config'):
+    os.makedirs('./config')
 
 logging.basicConfig(
     level=logging.INFO,

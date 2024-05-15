@@ -18,6 +18,18 @@ def send():
     utils.send_document(send_id)
     return redirect("/")
 
+@app.route("/queue")
+def queue():
+    send_id = request.args.get("id")
+    utils.queue_document(send_id)
+    return redirect("/")
+
+@app.route("/cancel")
+def cancel():
+    send_id = request.args.get("id")
+    utils.cancel_document(send_id)
+    return redirect("/")
+
 @app.route("/config/ollama", methods = ["GET", "POST"])
 def config_ollama():
     conn = db.get_conn()
@@ -79,6 +91,7 @@ def add_schedule():
     schedule_name = request.form["schedule-name"]
     schedule_cron = request.form["schedule-cron"]
     db.insert_schedule_row(conn, schedule_name, schedule_cron)
+    utils.update_jobs()
     return redirect("/config/schedule")
 
 @app.route("/config/update/schedule", methods = ["POST"])

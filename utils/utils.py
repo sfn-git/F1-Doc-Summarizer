@@ -219,6 +219,24 @@ def send_document(send_id):
         db.update_document_send_date_by_send_id(conn, send_id)
     return True
 
+def queue_document(send_id):
+    conn = db.get_conn()
+    queue_row = db.join_document_send_documents_webhooks(conn, send_id)[0]
+    if queue_row is None:
+        logging.warn(f'Not queuing send id {send_id} as it does not exist')
+    else:
+        db.update_document_send_by_id(conn, send_id, 0, 0)
+    return True
+
+def cancel_document(send_id):
+    conn = db.get_conn()
+    queue_row = db.join_document_send_documents_webhooks(conn, send_id)[0]
+    if queue_row is None:
+        logging.warn(f'Not queuing send id {send_id} as it does not exist')
+    else:
+        db.update_document_send_by_id(conn, send_id, 0, 1)
+    return True
+
 def get_latest_fia_docs():
     try:
         logging.info("Running FIA Docs Job")
@@ -233,16 +251,17 @@ def get_latest_fia_docs():
 def update_jobs():
     
     conn = db.get_conn()
-
-    sched.shutdown()
     jobs = db.get_all_schedule_rows(conn)
+
+    sched.remove_all_jobs()
+
     for job in jobs:
         job_id = job[0]
         job_name = job[1]
         try:
             trigger = CronTrigger.from_crontab(job[2])
         except Exception as e:
+            logging.warn(f"Job ({job_name}) was not added to the scheduler.")
             continue
         sched.add_job(get_latest_fia_docs, trigger=trigger, id=f"{job_id}", name=job_name)
-    sched.start()
     return True

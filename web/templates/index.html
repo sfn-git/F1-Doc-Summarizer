@@ -21,10 +21,10 @@
                 {{doc.document_name}}
             </button>
         </p>
-        <div class="collapse" id="collapseElm{{loop.index}}">
+        <div class="collapse {%if loop.index0 < 3 %}show{%endif%}" id="collapseElm{{loop.index}}">
             <a class="button btn-primary" href="{{doc.document_link}}">View Document</a>
             <div class="card card-body">
-                <h2>Webhook Status</h2>
+                <h2>{{doc.document_name}}</h2>
                 <div class="table-responsive">
                     <table class="table table-primary">
                         <thead>
@@ -50,6 +50,12 @@
                                     </td>
                                     <td>
                                         <a class="btn btn-primary" href="/send?id={{wh.send_id}}">Send</a>
+                                        {%if wh.skip == 1 or wh.sent == 1%}
+                                            <a class="btn btn-warning" href="/queue?id={{wh.send_id}}">Queue</a>
+                                        {%elif wh.skip == 0 or wh.sent == 0%}
+                                            <a class="btn btn-danger" href="/cancel?id={{wh.send_id}}">Cancel</a>
+                                        {%endif%}
+                                        
                                     </td>
                                 </tr>
                             {%endfor%}
