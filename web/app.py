@@ -1,34 +1,48 @@
 from flask import Flask, render_template, request, redirect
+from flask_socketio import SocketIO, emit
 import utils.db as db
 import utils.utils as utils
+from utils.logging import logging
 
 app = Flask(__name__)
+SECRET = "TEST"
+socketio = SocketIO(app)
 
+# Sockets
+@socketio.on('queue')
+def queue_socket(send_id):
+    try:
+        utils.queue_document(send_id)
+        emit("queue_response", {"status": True, "id": send_id})
+    except Exception as e:
+        logging.error(f"Error for setting queue from websocket {e}")
+        emit("queue_response", False)
+
+@socketio.on('cancel')
+def cancel_socket(send_id):
+    try:
+        utils.cancel_document(send_id)
+        emit("cancel_response", {"status": True, "id": send_id})
+    except Exception as e:
+        logging.error(f"Error for canceling from websocket {e}")
+        emit("cancel_response", False)
+
+@socketio.on('send')
+def send_socket(send_id):
+    try:
+        conn = db.get_conn()
+        utils.send_document(send_id)
+        send_date = db.join_document_send_documents_webhooks(conn, send_id)[0]["webhooks"][0]["send_date"]
+        emit("send_response", {"status": True, "id": send_id, 'sent_date': send_date})
+    except Exception as e:
+        logging.error(f"Error for sending doc from websocket {e}")
+        emit("send_response", False)
 # Routes
 @app.route("/")
 def index():
     utils.process_all_docs()
     docs = db.join_document_send_documents_webhooks(db.get_conn())
     return render_template("index.html", docs = docs)
-
-@app.route("/send")
-def send():
-    conn = db.get_conn()
-    send_id = request.args.get("id")
-    utils.send_document(send_id)
-    return redirect("/")
-
-@app.route("/queue")
-def queue():
-    send_id = request.args.get("id")
-    utils.queue_document(send_id)
-    return redirect("/")
-
-@app.route("/cancel")
-def cancel():
-    send_id = request.args.get("id")
-    utils.cancel_document(send_id)
-    return redirect("/")
 
 @app.route("/config/ollama", methods = ["GET", "POST"])
 def config_ollama():

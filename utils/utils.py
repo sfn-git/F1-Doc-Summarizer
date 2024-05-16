@@ -15,6 +15,7 @@ from io import StringIO
 from urllib.parse import quote
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.schedulers.background import BackgroundScheduler
+from flask_socketio import emit
 
 #Scheduler
 sched = BackgroundScheduler(daemon=True)
@@ -218,6 +219,7 @@ def send_document(send_id):
         send_id = send_row["webhooks"][0]["send_id"]
         db.update_document_send_by_id(conn, send_id, 1, 0)
         db.update_document_send_date_by_send_id(conn, send_id)
+    emit('sent_document', send_id)
     return True
 
 def queue_document(send_id):

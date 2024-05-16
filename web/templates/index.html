@@ -6,6 +6,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {% include 'libs.html' %}
     <title>FIA Doc Manager</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        var socket = io();
+
+        socket.on('queue_response', (data)=>{
+            let status = document.getElementById(`status-${data.id}`);
+            let button = document.getElementById(`actionbutton-${data.id}`);
+            if(data.status){
+                status.innerHTML = '<span class="badge text-bg-warning">Pending</span>';
+                button.innerHTML = `<button class="btn btn-danger" onclick="cancelQueueDocument(${data.id})">Cancel</button>`;
+            }
+        });
+
+        socket.on('cancel_response', (data)=>{
+            let status = document.getElementById(`status-${data.id}`);
+            let button = document.getElementById(`actionbutton-${data.id}`);
+            if(data.status){
+                status.innerHTML = '<span class="badge text-bg-primary">Skipped Send</span>';
+                button.innerHTML = `<button class="btn btn-warning" onclick="queueDocument(${data.id})">Queue</button>`;
+            }
+        });
+
+        socket.on('send_response', (data)=>{
+            let status = document.getElementById(`status-${data.id}`);
+            let dateElm = document.getElementById(`sentdate-${data.id}`);
+            if(data.status){
+                console.log(data)
+                status.innerHTML = '<span class="badge text-bg-success">Sent</span>';
+                dateElm.innerHTML = `${data.sent_date}`;
+            }
+        });
+
+        function queueDocument (sendID){
+            socket.emit('queue', sendID);
+        }
+        function cancelQueueDocument(sendID){
+            socket.emit('cancel', sendID)
+        }
+        function sendDocument(sendID){
+            socket.emit('send', sendID)
+        }
+    </script>
 </head>
 
 <body>
@@ -14,32 +56,26 @@
     <div class="container">
         <h1>All Documents</h1>
         {% for doc in docs %}
-        <p class="d-inline-flex gap-1">
-            <button class="btn btn-primary" type="button" data-bs-toggle="collapse"
-                data-bs-target="#collapseElm{{loop.index}}" aria-expanded="false"
-                aria-controls="collapseElm{{loop.index}}">
-                {{doc.document_name}}
-            </button>
-        </p>
         <div class="collapse show" id="collapseElm{{loop.index}}">
             <div class="card card-body">
                 <h2><a class="button btn-primary" href="{{doc.document_link}}" target="_blank">{{doc.document_name}}</a></h2>
-                <p>{{doc.document_date}}</p>
+                <p>Document Date - {{doc.document_date}}</p>
                 <div class="table-responsive">
                     <table class="table table-primary">
                         <thead>
                             <tr>
                                 <th scope="col">Webhook Name</th>
-                                <th scope="col">Sent Status</th>
                                 <th scope="col">Actions</th>
+                                <th scope="col">Date Send</th>
                             </tr>
                         </thead>
                         <tbody>
                             {%for wh in doc.webhooks%}
 
                                 <tr>
-                                    <td>{{wh.webhook_name}}</td>
                                     <td>
+                                        {{wh.webhook_name}}
+                                        <span id="status-{{wh.send_id}}">
                                         {%if wh.skip == 1%}
                                             <span class="badge text-bg-primary">Skipped Send</span>
                                         {%elif wh.sent == 1%}
@@ -47,15 +83,21 @@
                                         {%else%}
                                             <span class="badge text-bg-warning">Pending</span>
                                         {%endif%}
+                                        </span> 
                                     </td>
                                     <td>
-                                        <a class="btn btn-primary" href="/send?id={{wh.send_id}}">Send</a>
-                                        {%if wh.skip == 1 or wh.sent == 1%}
-                                            <a class="btn btn-warning" href="/queue?id={{wh.send_id}}">Queue</a>
-                                        {%elif wh.skip == 0 or wh.sent == 0%}
-                                            <a class="btn btn-danger" href="/cancel?id={{wh.send_id}}">Cancel</a>
-                                        {%endif%}
+                                        <button class="btn btn-primary" onclick="sendDocument({{wh.send_id}})">Send</button>
+                                        <span id="actionbutton-{{wh.send_id}}">
+                                            {%if wh.skip == 1 or wh.sent == 1%}
+                                                <button class="btn btn-warning" onclick="queueDocument({{wh.send_id}})">Queue</button>
+                                            {%elif wh.skip == 0 or wh.sent == 0%}
+                                                <button class="btn btn-danger" onclick="cancelQueueDocument({{wh.send_id}})">Cancel</button>
+                                            {%endif%}
+                                        </span>
                                         
+                                    </td>
+                                    <td>
+                                        <span id="sentdate-{{wh.send_id}}">{{wh.send_date}}</span>
                                     </td>
                                 </tr>
                             {%endfor%}
@@ -69,8 +111,5 @@
         <br>
         {% endfor %}
     </div>
-
-
 </body>
-
 </html>
