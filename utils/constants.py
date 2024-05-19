@@ -68,4 +68,3 @@ CREATE_DOCUMENT_TYPE_TABLE="""CREATE TABLE IF NOT EXISTS document_type(
 """
 
 BASE_FIA_URL = "https://www.fia.com"
-DOCUMENT_ENUMS = ["Summons", "Decision", "Infringement"]
