@@ -37,6 +37,15 @@ def send_socket(send_id):
     except Exception as e:
         logging.error(f"Error for sending doc from websocket {e}")
         emit("send_response", False)
+
+@socketio.on('ollama_url_form')
+def ollama_update(url):
+    try:
+        tags = utils.get_ollama_tags(url)
+        emit("send_ollama_response", tags)
+    except Exception as e:
+        logging.error(f"Error in ollama url socket {e}")
+        emit("send_ollama_response", False)
 # Routes
 @app.route("/")
 def index():
@@ -79,49 +88,76 @@ def add_webhooks():
 
 @app.route("/config/delete/webhook", methods = ["GET"])
 def delete_webhooks():
-    conn = db.get_conn()
     id = request.args.get("id")
-    db.delete_webhook_by_id(conn, id)
+    db.delete_webhook_by_id(db.get_conn(), id)
     return redirect("/config/webhooks")
 
 @app.route("/config/update/webhook", methods = ["POST"])
 def update_webhooks():
-    conn = db.get_conn()
     id = request.args.get("id")
     webhook_name = request.form["wb-name"]
     webhook_url = request.form["wb-url"]
-    db.update_webhook_by_id(conn, id, webhook_name, webhook_url)
+    db.update_webhook_by_id(db.get_conn(), id, webhook_name, webhook_url)
     return redirect("/config/webhooks")
 
 @app.route("/config/schedule", methods = ["GET"])
 def schedule():
-    conn = db.get_conn()
-    schedules = db.get_all_schedule_rows(conn)
+    schedules = db.get_all_schedule_rows(db.get_conn())
     return render_template("schedule.html", schedules = schedules)
 
 @app.route("/config/add/schedule", methods = ["POST"])
 def add_schedule():
-    conn = db.get_conn()
     schedule_name = request.form["schedule-name"]
     schedule_cron = request.form["schedule-cron"]
-    db.insert_schedule_row(conn, schedule_name, schedule_cron)
+    db.insert_schedule_row(db.get_conn(), schedule_name, schedule_cron)
     utils.update_jobs()
     return redirect("/config/schedule")
 
 @app.route("/config/update/schedule", methods = ["POST"])
 def update_schedules():
-    conn = db.get_conn()
     id = request.args.get("id")
     schedule_name = request.form["schedule-name"]
     schedule_cron = request.form["schedule-cron"]
-    db.update_schedule_row(conn, id, schedule_name, schedule_cron)
+    db.update_schedule_row(db.get_conn(), id, schedule_name, schedule_cron)
     utils.update_jobs()
     return redirect("/config/schedule")
 
 @app.route("/config/delete/schedule", methods = ["GET"])
 def delete_schedule():
-    conn = db.get_conn()
     id = request.args.get("id")
-    db.delete_schedule_row_by_id(conn, id)
+    db.delete_schedule_row_by_id(db.get_conn(), id)
     utils.update_jobs()
     return redirect("/config/schedule")
+
+@app.route("/config/documents", methods = ["GET"])
+def config_documents():
+    dts = db.get_all_document_types(db.get_conn())
+    return render_template("document.html", doc_types = dts)
+
+@app.route("/config/add/document_type", methods = ["POST"])
+def add_doc_type():
+    dt_name = request.form.get("dt-name")
+    dt_keyword = request.form.get("dt-keyword")
+    dt_active = request.form.get("dt-active")
+    if dt_active is None: dt_active = False 
+    else: dt_active=True
+
+    db.insert_document_type(db.get_conn(), dt_name, dt_keyword, dt_active)
+    return redirect("/config/documents")
+
+@app.route("/config/update/document_type", methods = ["POST"])
+def update_doc_type():
+    id = request.args.get("id")
+    dt_name = request.form.get("dt-name")
+    dt_keyword = request.form.get("dt-keyword")
+    dt_active = request.form.get("dt-active")
+    if dt_active is None: dt_active = False 
+    else: dt_active=True
+    db.update_document_type(db.get_conn(), id, dt_name, dt_keyword, dt_active)
+    return redirect("/config/documents")
+
+@app.route("/config/delete/document_type", methods = ["GET"])
+def delete_doc_type():
+    id = request.args.get("id")
+    db.delete_document_type_by_id(db.get_conn(), id)
+    return redirect("/config/documents")

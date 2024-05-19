@@ -45,7 +45,7 @@ def get_ollama_tags(ollama_url):
 
     try:
         tag_url = "{}{}".format(ollama_url, '/api/tags')
-        tags = requests.get(tag_url, timeout=3)
+        tags = requests.get(tag_url, timeout=(0.001, 0.002))
         tags_response = tags.json()
         return tags_response
     except Exception as e:

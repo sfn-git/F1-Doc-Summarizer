@@ -29,4 +29,6 @@
     - Model you will use to summarize the pdf content
 
 ## Custom Scheduler Coming Soon...
-- Currently, the scheduler built in will run every minute on Friday-Sunday and every hour on Monday - Thursday.
+- Built in scheduler allows you to customize how often you would like to check the FIA documents website for a new document to process. 
+    - Use cron syntax to set the timing for a specific job. 
+    - To disable a job, simply make the cron string invalid (Example: `-* * * * *`)

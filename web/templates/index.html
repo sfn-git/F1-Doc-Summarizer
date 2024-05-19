@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {% include 'libs.html' %}
     <title>FIA Doc Manager</title>
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script>
         var socket = io();
 
@@ -45,7 +44,9 @@
             socket.emit('cancel', sendID)
         }
         function sendDocument(sendID){
-            socket.emit('send', sendID)
+            if(confirm("Send Document?")){
+                socket.emit('send', sendID)
+            }
         }
     </script>
 </head>
@@ -53,6 +54,7 @@
 <body>
     {% include 'nav.html' %}
 
+    
     <div class="container">
         <h1>All Documents</h1>
         {% for doc in docs %}
@@ -66,7 +68,7 @@
                             <tr>
                                 <th scope="col">Webhook Name</th>
                                 <th scope="col">Actions</th>
-                                <th scope="col">Date Send</th>
+                                <th scope="col">Date Updated</th>
                             </tr>
                         </thead>
                         <tbody>
