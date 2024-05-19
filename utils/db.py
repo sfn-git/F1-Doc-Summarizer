@@ -620,6 +620,20 @@ def get_all_document_types(conn):
     except sqlite3.Error as e:
         logging.error(f"Error retrieving all document types: {e}")
         return []
+def get_active_document_types(conn):
+    try:
+        cursor = conn.cursor()
+        query = """
+            SELECT keyword
+            FROM document_type
+            WHERE active = 1
+        """
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        return rows
+    except sqlite3.Error as e:
+        logging.error(f"Error retrieving active document types: {e}")
+        return []
 #CHATGPT GENERATED CODE END#
 
 def get_config_obj(conn):
