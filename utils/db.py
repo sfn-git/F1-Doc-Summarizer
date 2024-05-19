@@ -551,6 +551,75 @@ def get_schedule_row_by_id(conn, job_id):
     except sqlite3.Error as e:
         logging.error(f"Error retrieving schedule row by id: {e}")
         return None
+def insert_document_type(conn, name, keyword, active):
+    try:
+        cursor = conn.cursor()
+        current_date = now()
+        query = """
+            INSERT INTO document_type (name, keyword, active, date_added, date_updated)
+            VALUES (?, ?, ?, ?, ?)
+        """
+        cursor.execute(query, (name, keyword, active, current_date, current_date))
+        conn.commit()
+        logging.info(f"Document type inserted successfully: name={name}, keyword={keyword}, active={active}.")
+    except sqlite3.Error as e:
+        conn.rollback()
+        logging.error(f"Error inserting document type: {e}")
+def update_document_type(conn, type_id, name, keyword, active):
+    try:
+        cursor = conn.cursor()
+        current_date = now()
+        query = """
+            UPDATE document_type
+            SET name = ?, keyword = ?, active = ?, date_updated = ?
+            WHERE type_id = ?
+        """
+        cursor.execute(query, (name, keyword, active, current_date, type_id))
+        conn.commit()
+        logging.info(f"Document type updated successfully: type_id={type_id}, name={name}, keyword={keyword}, active={active}.")
+    except sqlite3.Error as e:
+        conn.rollback()
+        logging.error(f"Error updating document type: {e}")
+def search_document_type_by_name(conn, name):
+    try:
+        cursor = conn.cursor()
+        query = """
+            SELECT type_id, name, keyword, active, date_added, date_updated
+            FROM document_type
+            WHERE name = ?
+        """
+        cursor.execute(query, (name,))
+        rows = cursor.fetchall()
+        return rows
+    except sqlite3.Error as e:
+        logging.error(f"Error searching document type by name: {e}")
+        return []
+def delete_document_type_by_id(conn, type_id):
+    try:
+        cursor = conn.cursor()
+        query = """
+            DELETE FROM document_type
+            WHERE type_id = ?
+        """
+        cursor.execute(query, (type_id,))
+        conn.commit()
+        logging.info(f"Document type deleted successfully: type_id={type_id}.")
+    except sqlite3.Error as e:
+        conn.rollback()
+        logging.error(f"Error deleting document type: {e}")
+def get_all_document_types(conn):
+    try:
+        cursor = conn.cursor()
+        query = """
+            SELECT type_id, name, keyword, active, date_added, date_updated
+            FROM document_type
+        """
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        return rows
+    except sqlite3.Error as e:
+        logging.error(f"Error retrieving all document types: {e}")
+        return []
 #CHATGPT GENERATED CODE END#
 
 def get_config_obj(conn):
@@ -580,6 +649,7 @@ def get_conn():
     cur.execute(constants.CREATE_DOCUMENTS_SEND_TABLE)
     cur.execute(constants.CREATE_DOC_SUMMARY_TABLE)
     cur.execute(constants.CREATE_SCHEDULE_TABLE)
+    cur.execute(constants.CREATE_DOCUMENT_TYPE_TABLE)
 
     if first_run:
         insert_config(conn, 'dev', False, True, '', '')
