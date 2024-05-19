@@ -5,38 +5,73 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {% include 'libs.html' %}
-    <title>Config - FIA Doc Manager</title>
+    <title>Ollama - FIA Doc Manager</title>
+    <script>
+        let socket = io();
+        socket.on('send_ollama_response', (data)=>{
+            ollama_status_elm = document.getElementById("ollama-status");
+            ollama_tags_elm = document.getElementById("ollama-tags")
+            if(data){
+                ollama_status_elm.innerHTML = `<span class="badge text-bg-success">Valid</span>`
+                ollama_tags_html = `
+                    <label for="ollama-select" class="form-label">Ollama Tag</label>
+                    <select class="form-select" aria-label="Default select example" name="ollama-tag">
+                        <option value=""></option>
+                `;
+                for (i in data.models){
+                    ollama_tags_html += `<option value="${data.models[i].model}">${data.models[i].name}</option>`
+                }
+                ollama_tags_html += `</select>`;
+                ollama_tags_elm.innerHTML = ollama_tags_html;
+                
+            }else{
+                ollama_status_elm.innerHTML = `<span class="badge text-bg-danger">Invalid</span>`
+            }
+        });
+        function update_ollama_url(url){
+            ollama_status_elm = document.getElementById("ollama-status");
+            ollama_status_elm.innerHTML = `<span class='badge text-bg-warning'>Checking</span>`
+            socket.emit('ollama_url_form', url)
+        }
+    </script>
 </head>
 
 <body>
     {% include 'nav.html' %}
     <div class="container">
         <h1>Ollama Configurations</h1>
-        <small id="helpId" class="form-text text-muted">Configuration Last Edited: {{configs["LAST_UPDATED"]}}</small>
     </div>
 
     <div class="container" id="manage-ollama">
-        <h4>Ollama Settings</h4>
         <form action="/config/ollama" method="post">
             <div class="row">
                 <div class="col-8">
-                    <label for="ollama-url" class="form-label">Ollama URL</label>
+                    <label for="ollama-url" class="form-label">
+                        Ollama URL
+                        <span id="ollama-status">
+                            {%if ollama_tags.models|length > 0%}
+                                <span class="badge text-bg-success">Valid</span>
+                            {%else%}
+                                <span class="badge text-bg-danger">Invalid</span>
+                            {%endif%}
+                        </span>
+                    </label>
                     <input type="text" class="form-control" name="ollama-url" id="ollama-url" aria-describedby="helpId"
-                        placeholder="http://localhost:11434" value="{{configs.OLLAMA_URL}}" />
+                        placeholder="http://localhost:11434" value="{{configs.OLLAMA_URL}}" onchange="update_ollama_url(this.value);"/>
                     <small id="helpId" class="form-text text-muted">A blank or invalid URL will result in the summary being skipped.</small>
                 </div>
-                <div class="col-4">
-                    <label for="ollama-url" class="form-label">Ollama Tag</label>
+                <div class="col-4" id="ollama-tags">
+                    <label for="ollama-select" class="form-label">Ollama Tag</label>
                     <select class="form-select" aria-label="Default select example" name="ollama-tag">
                         <option value=""></option>
                         {%for tag in ollama_tags.models%}
                             <option value="{{tag.model}}" {% if tag.model == configs.OLLAMA_TAG%}selected{%endif%}>{{tag.name}}</option>
                         {%endfor%}
                     </select>
-                    <small id="helpId" class="form-text text-muted">Add a Ollama URL to allow for models from your instance to be selected</small>
+                    <!-- <small id="helpId" class="form-text text-muted">Add a Ollama URL to allow for models from your instance to be selected</small> -->
                 </div>
             </div>
-            <div class="row">
+            <div class="row mt-4">
                 <div class="col-4">
                     <button type="submit" class="btn btn-primary">Update Ollama Settings</button>
                 </div>

@@ -57,6 +57,14 @@ CREATE_SCHEDULE_TABLE="""CREATE TABLE IF NOT EXISTS schedule(
     date_updated DATE
 )
 """
+CREATE_DOCUMENT_TYPE_TABLE="""CREATE TABLE IF NOT EXISTS document_type(
+    type_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    keyword TEXT,
+    active BOOLEAN,
+    date_added DATE,
+    date_updated DATE
+)
+"""
 
 BASE_FIA_URL = "https://www.fia.com"
-DOCUMENT_ENUMS = ["Summons", "Decision", "Infringement"]

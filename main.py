@@ -1,14 +1,11 @@
-import utils.db as db
 import utils.utils as utils
+from web.app import socketio as io
 from web.app import app
-
-data = db.get_config_obj(db.get_conn())
 
 def main():    
     # Create Schedules
     utils.update_jobs()
-    from waitress import serve
-    serve(app, host='0.0.0.0', port=8080)
+    io.run(app, host="0.0.0.0", port=8080, allow_unsafe_werkzeug=True) #Will look at WSGI server in the future
 
 if __name__=='__main__':
     main()

@@ -15,14 +15,11 @@ from io import StringIO
 from urllib.parse import quote
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.schedulers.background import BackgroundScheduler
+from flask_socketio import emit
 
 #Scheduler
 sched = BackgroundScheduler(daemon=True)
 sched.start()
-
-def get_current_datetime():
-    curr_time = datetime.now()
-    return curr_time
 
 def get_fun_prompt():
 
@@ -44,7 +41,7 @@ def get_ollama_tags(ollama_url):
 
     try:
         tag_url = "{}{}".format(ollama_url, '/api/tags')
-        tags = requests.get(tag_url, timeout=3)
+        tags = requests.get(tag_url, timeout=(0.001, 0.002))
         tags_response = tags.json()
         return tags_response
     except Exception as e:
@@ -80,26 +77,35 @@ def process_all_docs():
         
         all_docs = soup.find_all("li", {"class": "document-row"})
         conn = db.get_conn()
-
+        allowed_doc_types = db.get_active_document_types(conn)
         # Loops all links retrieved from webpage
         for doc in all_docs:
             link = doc.a['href']
+            normalized_link = link.lower()
             doc_time = parse_date_with_timezone(doc.span.text, "%d.%m.%y %H:%M", "CET")
             if "/sites/default/files/decision-document" in link: #and "Miami" in link:
-                for enum in constants.DOCUMENT_ENUMS:
-                    if enum in link:
-                        doc_hash = get_md5_hash(link)
-                        db_doc = db.get_document_by_hash(conn, doc_hash)
-                        if db_doc == None:
-                            doc_split = link.split('/')
-                            doc_name = doc_split[len(doc_split)-1].split('.pdf')[0]
-                            db.insert_document(conn, doc_name, "{}{}".format(constants.BASE_FIA_URL, quote(link)), link, doc_hash, doc_time)
-                            db_doc = db.get_document_by_hash(conn, doc_hash)
-                            webhooks = db.get_all_webhooks(conn)
-                            for wh in webhooks:
-                                document_send_obj = db.search_document_send(conn, wh[0], db_doc[0])
-                                if document_send_obj is None:
-                                    db.insert_document_send(conn, wh[0], db_doc[0], False, False)
+                #Loop to determine if this type of document should be auto sent
+                doc_skip = True
+                if len(allowed_doc_types) > 0:
+                    for dts in allowed_doc_types:
+                        enum = dts[0].lower()
+                        if enum in normalized_link or enum == 'all':
+                            doc_skip = False
+                            break
+                doc_hash = get_md5_hash(link)
+                db_doc = db.get_document_by_hash(conn, doc_hash)
+                if db_doc == None:
+                    doc_split = link.split('/')
+                    doc_name = doc_split[len(doc_split)-1].split('.pdf')[0]
+                    db.insert_document(conn, doc_name, "{}{}".format(constants.BASE_FIA_URL, quote(link)), link, doc_hash, doc_time)
+                    db_doc = db.get_document_by_hash(conn, doc_hash)
+                    webhooks = db.get_all_webhooks(conn)
+                    for wh in webhooks:
+                        document_send_obj = db.search_document_send(conn, wh[0], db_doc[0])
+                        if document_send_obj is None:
+                            if doc_skip: db.insert_document_send(conn, wh[0], db_doc[0], False, True)
+                            else: db.insert_document_send(conn, wh[0], db_doc[0], False, False)
+
         return True
     except requests.exceptions.HTTPError as e:
         logging.error('Received failed status code from FIA main documents webpage.')
@@ -218,6 +224,7 @@ def send_document(send_id):
         send_id = send_row["webhooks"][0]["send_id"]
         db.update_document_send_by_id(conn, send_id, 1, 0)
         db.update_document_send_date_by_send_id(conn, send_id)
+    emit('sent_document', send_id)
     return True
 
 def queue_document(send_id):
