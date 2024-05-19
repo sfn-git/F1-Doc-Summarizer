@@ -1,11 +1,14 @@
 from flask import Flask, render_template, request, redirect
 from flask_socketio import SocketIO, emit
+from utils.logging import logging
 import utils.db as db
 import utils.utils as utils
-from utils.logging import logging
+import secrets
+import string
+
 
 app = Flask(__name__)
-SECRET = "TEST"
+app.config['SECRET_KEY'] = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for i in range(64)) #https://www.geeksforgeeks.org/python-generate-random-string-of-given-length/
 socketio = SocketIO(app)
 
 # Sockets

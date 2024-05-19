@@ -1,8 +1,11 @@
 from utils.logging import logging
+from datetime import datetime
 import os
 import sqlite3
 import utils.constants as constants
-from utils.utils import get_current_datetime as now
+
+def now():
+    return datetime.now()
 
 #CHATGPT GENERATED CODE START#
 # CURD Functions 

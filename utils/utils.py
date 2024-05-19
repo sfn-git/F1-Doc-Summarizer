@@ -21,10 +21,6 @@ from flask_socketio import emit
 sched = BackgroundScheduler(daemon=True)
 sched.start()
 
-def get_current_datetime():
-    curr_time = datetime.now()
-    return curr_time
-
 def get_fun_prompt():
 
     FUN_PROMPTS = [
