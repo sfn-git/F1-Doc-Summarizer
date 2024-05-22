@@ -34,6 +34,8 @@
                 console.log(data)
                 status.innerHTML = '<span class="badge text-bg-success">Sent</span>';
                 dateElm.innerHTML = `${data.sent_date}`;
+            }else{
+                status.innerHTML = '<span class="badge text-bg-danger">Error</span>';
             }
         });
 

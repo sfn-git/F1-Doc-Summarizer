@@ -34,12 +34,12 @@ def cancel_socket(send_id):
 def send_socket(send_id):
     try:
         conn = db.get_conn()
-        utils.send_document(send_id)
+        status = utils.send_document(send_id)
         send_date = db.join_document_send_documents_webhooks(conn, send_id)[0]["webhooks"][0]["send_date"]
-        emit("send_response", {"status": True, "id": send_id, 'sent_date': send_date})
+        emit("send_response", {"status": status, "id": send_id, 'sent_date': send_date})
     except Exception as e:
         logging.error(f"Error for sending doc from websocket {e}")
-        emit("send_response", False)
+        emit("send_response", {"status": False})
 
 @socketio.on('ollama_url_form')
 def ollama_update(url):

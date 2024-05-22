@@ -81,17 +81,8 @@ def process_all_docs():
         # Loops all links retrieved from webpage
         for doc in all_docs:
             link = doc.a['href']
-            normalized_link = link.lower()
             doc_time = parse_date_with_timezone(doc.span.text, "%d.%m.%y %H:%M", "CET")
-            if "/sites/default/files/decision-document" in link: #and "Miami" in link:
-                #Loop to determine if this type of document should be auto sent
-                doc_skip = True
-                if len(allowed_doc_types) > 0:
-                    for dts in allowed_doc_types:
-                        enum = dts[0].lower()
-                        if enum in normalized_link or enum == 'all':
-                            doc_skip = False
-                            break
+            if "/sites/default/files/decision-document" in link:
                 doc_hash = get_md5_hash(link)
                 db_doc = db.get_document_by_hash(conn, doc_hash)
                 if db_doc == None:
@@ -103,7 +94,17 @@ def process_all_docs():
                     for wh in webhooks:
                         document_send_obj = db.search_document_send(conn, wh[0], db_doc[0])
                         if document_send_obj is None:
-                            if doc_skip: db.insert_document_send(conn, wh[0], db_doc[0], False, True)
+                            #Loop to determine if this type of document should be auto sent
+                            doc_skip = True
+                            normalized_doc_name = doc_name.lower()
+                            if len(allowed_doc_types) > 0:
+                                for dts in allowed_doc_types:
+                                    enum = dts[0].lower()
+                                    if enum in normalized_doc_name:
+                                        logging.info(f"Document {doc_name} will be sent indicated with enum {enum}")
+                                        doc_skip = False
+                                        break
+                            if doc_skip == True: db.insert_document_send(conn, wh[0], db_doc[0], False, True)
                             else: db.insert_document_send(conn, wh[0], db_doc[0], False, False)
 
         return True
@@ -178,21 +179,41 @@ def summarize_data(prompt):
 def build_prompt(pdf_data):
     prompt = "Do not greet when responding. {} Bold each header. Stay strictly to the format below.\nRace: [<Year> Name of Race]\nDriver(s) Involved: [Only list the name of the Driver or car number if the name is not available]\nPenalties/Allegation/Decision: [Bullet point driver that was punished and the penalties]\nSummary: [Summarize the event that ocurred in the document]\n{}".format(get_fun_prompt(), pdf_data)
     return prompt
-    
-def sendMessage(url, title, description, doc_url, img_url):
+
+def upload_img(img_path):
+
+    url = ""
+
+    files = {"image": open(img_path, "rb")}
+
+    result = requests.post(url, files = files)
+
+    try:
+        result.raise_for_status()
+    except Exception as err:
+        print(err)
+    else:
+        print("Image Uploaded".format(result.status_code))
+        return result.json()["attachments"][0]["url"]
+
+def send_message(url, title, description, doc_url, img_url=None):
 
     try:
         #for all params, see https://discordapp.com/developers/docs/resources/webhook#execute-webhook
         data = {
-            "username" : "FIA Document"
+            # "username" : "FIA Document"
         }
         data["embeds"] = [
             {
                 "title": "{}".format(title),
                 "description" : "{}".format(description),
-                "url": "{}".format(doc_url)
+                "url": "{}".format(doc_url),
             }
         ]
+
+        if img_url is not None:
+            data["embeds"][0]["image"]["url"] = f"{img_url}"
+
         result = requests.post(url, json = data)
         result.raise_for_status()
         return True
@@ -219,13 +240,13 @@ def send_document(send_id):
         db.insert_document_summary(conn, doc_id, summary, prompt, ollama_url, ollama_model)
     else:
         summary = doc_summary[3]
-    status = sendMessage(webhook_url, title, summary, doc_url, None)
+    status = send_message(webhook_url, title, summary, doc_url, None)
     if status:
         send_id = send_row["webhooks"][0]["send_id"]
         db.update_document_send_by_id(conn, send_id, 1, 0)
         db.update_document_send_date_by_send_id(conn, send_id)
-    emit('sent_document', send_id)
-    return True
+    # emit('sent_document', {"id":send_id, "status": status})
+    return status
 
 def queue_document(send_id):
     conn = db.get_conn()
