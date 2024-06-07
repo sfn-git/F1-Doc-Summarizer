@@ -10,7 +10,7 @@
         let socket = io();
         socket.on('send_ollama_response', (data)=>{
             ollama_status_elm = document.getElementById("ollama-status");
-            ollama_tags_elm = document.getElementById("ollama-tags")
+            ollama_tags_elm = document.getElementById("ollama-tags");
             if(data){
                 ollama_status_elm.innerHTML = `<span class="badge text-bg-success">Valid</span>`
                 ollama_tags_html = `
@@ -25,13 +25,28 @@
                 ollama_tags_elm.innerHTML = ollama_tags_html;
                 
             }else{
-                ollama_status_elm.innerHTML = `<span class="badge text-bg-danger">Invalid</span>`
+                ollama_status_elm.innerHTML = `<span class="badge text-bg-danger">Invalid</span>`;
             }
         });
+
+        socket.on('send_sys_prompt', (data)=>{
+            sys_status = document.getElementById("")
+            if(data){
+                sys_status.innerHTML = "<span class='badge text-bg-success'>Updated</span>"
+            }else{
+                sys_status.innerHTML = "<span class='badge text-bg-danger'>Error While Updating</span>"
+            }
+            
+        });
+
         function update_ollama_url(url){
             ollama_status_elm = document.getElementById("ollama-status");
-            ollama_status_elm.innerHTML = `<span class='badge text-bg-warning'>Checking</span>`
-            socket.emit('ollama_url_form', url)
+            ollama_status_elm.innerHTML = `<span class='badge text-bg-warning'>Checking</span>`;
+            socket.emit('ollama_url_form', url);
+        }
+        function update_system_prompt(){
+            sys_prompt = document.getElementById("system_prompt").value;
+            socket.emit('update_sys_prompt', sys_prompt);
         }
     </script>
 </head>
@@ -39,7 +54,7 @@
 <body>
     {% include 'nav.html' %}
     <div class="container">
-        <h1>Ollama Configurations</h1>
+        <h2>Ollama Configurations</h2>
     </div>
 
     <div class="container" id="manage-ollama">
@@ -77,6 +92,18 @@
                 </div>
             </div>
         </form>
+    </div>
+    <hr>
+    <div class="container" id="prompts">
+        <h2>Prompts Management</h2>
+        <h5>System Prompt <span id="sys_status"></span></h5>
+        <p>Note: place [doc_data] where you would like the PDF data to be inserted in the prompt</p>
+        <div class="form-floating">
+            <textarea class="form-control" placeholder="system_prompt" id="system_prompt" style="height: 150px">{{system_prompt[2]}}</textarea>
+            <button class="btn btn-primary my-2" type="button" onclick="update_system_prompt()">Update</button>
+          </div>
+        <h5>Webhook Prompt</h5>
+        <h5>Doc Type Prompt</h5>
     </div>
 </body>
 

@@ -49,6 +49,18 @@ def ollama_update(url):
     except Exception as e:
         logging.error(f"Error in ollama url socket {e}")
         emit("send_ollama_response", False)
+
+@socketio.on('update_sys_prompt')
+def update_sys_prompt(sys_prompt):
+    try:
+        conn = db.get_conn()
+        sys_prompt_id = db.get_system_prompt(conn)[0]
+        db.update_prompt(conn, sys_prompt_id, prompt=sys_prompt)
+        emit("send_sys_prompt", True)
+    except Exception as e:
+        logging.error(f"Error in update system prompt {e}")
+        emit("send_sys_prompt", False)
+
 # Routes
 @app.route("/")
 def index():
@@ -68,7 +80,19 @@ def config_ollama():
     else:
         configs = db.get_config_obj(conn)
         ollama_tags = utils.get_ollama_tags(configs["OLLAMA_URL"])
-        return render_template("ollama.html", configs=configs, ollama_tags = ollama_tags)
+        system_prompt = db.get_system_prompt(conn)
+        webhook_prompts = db.get_prompts_by_type(conn, "WEBHOOK")
+        doctype_prompts = db.get_prompts_by_type(conn, "DOCTYPE")
+        # print(system_prompt)
+        # print(webhook_prompts)
+        # print(doctype_prompts)
+        return render_template("ollama.html", 
+                               configs=configs
+                               , ollama_tags = ollama_tags
+                               , system_prompt = system_prompt
+                               , webhook_prompts = webhook_prompts
+                               , doctype_prompts = doctype_prompts
+                            )
 
 @app.route("/config/webhooks")
 def config():

@@ -177,7 +177,11 @@ def summarize_data(prompt):
         return ""
 
 def build_prompt(pdf_data):
-    prompt = "Do not greet when responding. {} Bold each header. Stay strictly to the format below.\nRace: [<Year> Name of Race]\nDriver(s) Involved: [Only list the name of the Driver or car number if the name is not available]\nPenalties/Allegation/Decision: [Bullet point driver that was punished and the penalties]\nSummary: [Summarize the event that ocurred in the document]\n{}".format(get_fun_prompt(), pdf_data)
+    conn = db.get_conn()
+    sys_prompt = db.get_system_prompt(conn)[2]
+
+    prompt = f"{constants.INSTRUCTION_PROMPT}\n{sys_prompt}".replace("[doc_data]", pdf_data)
+    print(prompt)
     return prompt
 
 def upload_img(img_path):

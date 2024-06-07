@@ -66,5 +66,22 @@ CREATE_DOCUMENT_TYPE_TABLE="""CREATE TABLE IF NOT EXISTS document_type(
     date_updated DATE
 )
 """
+CREATE_PROMPT_TABLE="""CREATE TABLE IF NOT EXISTS prompts(
+    prompt_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    prompt TEXT,
+    prompt_type TEXT CHECK(prompt_type IN ('SYSTEM', 'DOCTYPE', 'WEBHOOK', 'FUN')),
+    link_id INTEGER,
+    date_added DATE,
+    date_updated DATE
+)
+"""
+
+INSTRUCTION_PROMPT="""Do not greet when responding. Bold each header. Stay strictly to the format below."""
+
+DEFAULT_SYSTEM_PROMPT ="""Race: [<Year> Name of Race]
+Driver(s) Involved: [Only list the name of the Driver or car number if the name is not available]
+Penalties/Allegation/Decision: [Bullet point driver that was punished and the penalties]
+Summary: [Summarize the event that occurred in the document]""".lstrip().rstrip()
 
 BASE_FIA_URL = "https://www.fia.com"
