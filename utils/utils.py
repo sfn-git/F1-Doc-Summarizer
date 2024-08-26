@@ -26,15 +26,16 @@ def get_fun_prompt():
     FUN_PROMPTS = [
         "Write the summary as if a pirate was summarizing the document (using pirate lingo and slang).",
         "Write the summary from the perspective of a dinosaur and make it relatable to your experience as a dinosaur.",
-        "Write the summary as a love letter.",
+        "Write the summary as a love letter. Make sure to sign it off ;)",
         "Write the summary, but instead of the drivers that are listed, replace every driver with Esteban Ocon and state that his penalty is 50 years in jail."
     ]
     if randint(1,20) == 5:
+    # if True:
         prompt = choice(FUN_PROMPTS)
         logging.info('Fun Summary - {}'.format(prompt))
         return prompt
     else:
-        return 'Please summarize the text below.'
+        return ''
         # return FUN_PROMPTS[3]
 
 def get_ollama_tags(ollama_url):
@@ -169,7 +170,7 @@ def summarize_data(prompt):
         generate_res.raise_for_status()
         gen_response = generate_res.json()['response']
         logging.info('(Response) {}'.format(gen_response).replace('\n', ' '))
-        return "{}\n\n*Summary is AI Generated\nModel - {}*".format(gen_response, model)
+        return "{}\n\n*Summary is AI Generated\n{}*".format(gen_response, model)
     except Exception as e:
         exc_type, exc_obj, exc_tb = exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
@@ -180,7 +181,7 @@ def build_prompt(pdf_data):
     conn = db.get_conn()
     sys_prompt = db.get_system_prompt(conn)[2]
 
-    prompt = f"{constants.INSTRUCTION_PROMPT}\n{sys_prompt}".replace("[doc_data]", pdf_data)
+    prompt = f"{constants.INSTRUCTION_PROMPT}\n{get_fun_prompt()}\n{sys_prompt}".replace("[doc_data]", pdf_data)
     print(prompt)
     return prompt
 
@@ -233,17 +234,17 @@ def send_document(send_id):
     doc_url = send_row["document_link"]
     doc_id = send_row["doc_id"]
     doc_time = send_row["document_date"]
-    doc_summary = db.get_document_summary_by_doc_id(conn, doc_id)
-    if doc_summary is None or doc_summary[3] == "":
-        file_path = get_file_from_url(doc_url)
-        pdf_data = get_pdf_data(file_path)
-        prompt = build_prompt(pdf_data)
-        summary = f"{doc_time}\n\n{summarize_data(prompt)}"
-        ollama_url = db.get_config_ollama_url(conn)
-        ollama_model = db.get_config_ollama_model(conn)
-        db.insert_document_summary(conn, doc_id, summary, prompt, ollama_url, ollama_model)
-    else:
-        summary = doc_summary[3]
+    # doc_summary = db.get_document_summary_by_doc_id(conn, doc_id)
+    # if doc_summary is None or doc_summary[3] == "":
+    file_path = get_file_from_url(doc_url)
+    pdf_data = get_pdf_data(file_path)
+    prompt = build_prompt(pdf_data)
+    summary = f"{doc_time}\n\n{summarize_data(prompt)}"
+    ollama_url = db.get_config_ollama_url(conn)
+    ollama_model = db.get_config_ollama_model(conn)
+    db.insert_document_summary(conn, doc_id, summary, prompt, ollama_url, ollama_model)
+    # else:
+    #     summary = doc_summary[3]
     status = send_message(webhook_url, title, summary, doc_url, None)
     if status:
         send_id = send_row["webhooks"][0]["send_id"]

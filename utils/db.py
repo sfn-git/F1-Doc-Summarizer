@@ -682,6 +682,7 @@ def update_prompt(conn, prompt_id, name=None, prompt=None, prompt_type=None, lin
             SET {", ".join(update_fields)}
             WHERE prompt_id = ?
         """
+
         cursor.execute(query, update_values)
         conn.commit()
         logging.info(f"Prompt updated successfully: prompt_id={prompt_id}.")

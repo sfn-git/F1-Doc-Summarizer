@@ -5,6 +5,7 @@ import utils.db as db
 import utils.utils as utils
 import secrets
 import string
+import utils.constants as constants
 
 
 app = Flask(__name__)
@@ -55,7 +56,7 @@ def update_sys_prompt(sys_prompt):
     try:
         conn = db.get_conn()
         sys_prompt_id = db.get_system_prompt(conn)[0]
-        db.update_prompt(conn, sys_prompt_id, prompt=sys_prompt)
+        db.update_prompt(conn=conn, prompt_id=sys_prompt_id, prompt=sys_prompt)
         emit("send_sys_prompt", True)
     except Exception as e:
         logging.error(f"Error in update system prompt {e}")
@@ -83,7 +84,8 @@ def config_ollama():
         system_prompt = db.get_system_prompt(conn)
         webhook_prompts = db.get_prompts_by_type(conn, "WEBHOOK")
         doctype_prompts = db.get_prompts_by_type(conn, "DOCTYPE")
-        # print(system_prompt)
+        if system_prompt is None:
+            db.insert_prompt(conn, "DEFAULT_SYSTEM", constants.DEFAULT_SYSTEM_PROMPT, "SYSTEM", None)
         # print(webhook_prompts)
         # print(doctype_prompts)
         return render_template("ollama.html", 
