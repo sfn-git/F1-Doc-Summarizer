@@ -5,6 +5,7 @@ import utils.db as db
 import os
 import re
 from datetime import datetime
+import pytz
 from random import choice, randint
 from utils.logging import logging
 from bs4 import BeautifulSoup
@@ -81,7 +82,9 @@ def process_all_docs():
         allowed_doc_types = db.get_active_document_types(conn)
         # Loops all links retrieved from webpage
         for doc in all_docs:
-            link = doc.a['href']
+            link = ''
+            if doc.a is not None:
+                link = doc.a['href']
             doc_time = parse_date_with_timezone(doc.span.text, "%d.%m.%y %H:%M", "CET")
             if "/sites/default/files/decision-document" in link:
                 doc_hash = get_md5_hash(link)
@@ -114,7 +117,7 @@ def process_all_docs():
         return None
     except Exception as e:
         exc_type, exc_obj, exc_tb = exc_info()
-        logging.error('An error ocurred and the FIA document could not be processed.', exc_type, exc_obj, exc_tb.tb_lineno, e)
+        logging.error(f'An error ocurred and the FIA document could not be processed. {e, exc_type, exc_obj, exc_tb.tb_lineno}')
         return None
     
 def get_file_from_url (url):
@@ -226,6 +229,10 @@ def send_message(url, title, description, doc_url, img_url=None):
         logging.error("Embed failed to send. {}".format(err))
         return False
 
+def date_string(date):
+    datetime_string = date.strftime("%B %d, %Y %I:%M %p %Z")
+    return  datetime_string
+
 def send_document(send_id):
     conn = db.get_conn()
     send_row = db.join_document_send_documents_webhooks(conn, send_id)[0]
@@ -233,13 +240,15 @@ def send_document(send_id):
     title = send_row["document_name"]
     doc_url = send_row["document_link"]
     doc_id = send_row["doc_id"]
-    doc_time = send_row["document_date"]
+    doc_time = datetime.fromisoformat(send_row["document_date"]).astimezone(pytz.utc)
+    est = pytz.timezone('US/Eastern')
+    doc_time_est = doc_time.astimezone(est)
     # doc_summary = db.get_document_summary_by_doc_id(conn, doc_id)
     # if doc_summary is None or doc_summary[3] == "":
     file_path = get_file_from_url(doc_url)
     pdf_data = get_pdf_data(file_path)
     prompt = build_prompt(pdf_data)
-    summary = f"{doc_time}\n\n{summarize_data(prompt)}"
+    summary = f"**Document Date:**\n{date_string(doc_time)}\n{date_string(doc_time_est)}\n\n{summarize_data(prompt)}"
     ollama_url = db.get_config_ollama_url(conn)
     ollama_model = db.get_config_ollama_model(conn)
     db.insert_document_summary(conn, doc_id, summary, prompt, ollama_url, ollama_model)

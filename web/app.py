@@ -56,7 +56,8 @@ def update_sys_prompt(sys_prompt):
     try:
         conn = db.get_conn()
         sys_prompt_id = db.get_system_prompt(conn)[0]
-        db.update_prompt(conn=conn, prompt_id=sys_prompt_id, prompt=sys_prompt)
+        clean_string = sys_prompt.lstrip().rstrip()
+        db.update_prompt(conn=conn, prompt_id=sys_prompt_id, prompt=clean_string)
         emit("send_sys_prompt", True)
     except Exception as e:
         logging.error(f"Error in update system prompt {e}")
@@ -66,8 +67,14 @@ def update_sys_prompt(sys_prompt):
 @app.route("/")
 def index():
     utils.process_all_docs()
-    docs = db.join_document_send_documents_webhooks(db.get_conn())
-    return render_template("index.html", docs = docs)
+    conn = db.get_conn()
+    if len(db.get_all_webhooks(conn)) <= 0:
+        docs = db.get_all_documents(conn)
+        only_docs = True
+    else:
+        docs = db.join_document_send_documents_webhooks(conn)
+        only_docs = False
+    return render_template("index.html", docs=docs, only_docs=only_docs)
 
 @app.route("/config/ollama", methods = ["GET", "POST"])
 def config_ollama():

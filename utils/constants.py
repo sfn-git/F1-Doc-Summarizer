@@ -77,11 +77,11 @@ CREATE_PROMPT_TABLE="""CREATE TABLE IF NOT EXISTS prompts(
 )
 """
 
-INSTRUCTION_PROMPT="""Do not greet when responding. Bold each header. Stay strictly to the format below."""
+INSTRUCTION_PROMPT="""Do not greet or describe what you are thinking when responding. Bold each header. Stay strictly to the format below. Only summarize using the guidelines below."""
 
 DEFAULT_SYSTEM_PROMPT ="""Race: [<Year> Name of Race]
-Driver(s) Involved: [Only list the name of the Driver or car number if the name is not available]
-Penalties/Allegation/Decision: [Bullet point driver that was punished and the penalties]
-Summary: [Summarize the event that occurred in the document]""".lstrip().rstrip()
+Document Number: [If it is listed in the document, put the document number here (only the number). If it cannot be located, skip this field]
+Summary: [Summarize the event that occurred in the document. Where applicable, include the driver(s), team(s), or organization(s) involved. Where applicable, include any penalties and what regulation was breached as part of the penalty.]
+[doc_data]""".lstrip().rstrip()
 
 BASE_FIA_URL = "https://www.fia.com"
