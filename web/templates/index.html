@@ -60,6 +60,7 @@
     <div class="container">
         <h1>All Documents</h1>
         {% if only_docs %}
+        <p>In order to generate AI summaries, add Ollama details and add a webhook for the summaries to be sent to.</p>
             {% for doc in docs %}
                 <div class="collapse show" id="collapseElm{{loop.index}}">
                     <div class="card card-body">
