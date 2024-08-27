@@ -637,6 +637,118 @@ def get_active_document_types(conn):
     except sqlite3.Error as e:
         logging.error(f"Error retrieving active document types: {e}")
         return []
+    
+def insert_prompt(conn, name, prompt, prompt_type, link_id):
+    try:
+        cursor = conn.cursor()
+        current_date = now()
+        query = """
+            INSERT INTO prompts (name, prompt, prompt_type, link_id, date_added, date_updated)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """
+        cursor.execute(query, (name, prompt, prompt_type, link_id, current_date, current_date))
+        conn.commit()
+        logging.info(f"Prompt inserted successfully: name={name}, prompt_type={prompt_type}, link_id={link_id}.")
+    except sqlite3.Error as e:
+        conn.rollback()
+        logging.error(f"Error inserting prompt: {e}")
+
+def update_prompt(conn, prompt_id, name=None, prompt=None, prompt_type=None, link_id=None):
+    try:
+        cursor = conn.cursor()
+        current_date = now()
+        update_fields = []
+        update_values = []
+        
+        if name is not None:
+            update_fields.append("name = ?")
+            update_values.append(name)
+        if prompt is not None:
+            update_fields.append("prompt = ?")
+            update_values.append(prompt)
+        if prompt_type is not None:
+            update_fields.append("prompt_type = ?")
+            update_values.append(prompt_type)
+        if link_id is not None:
+            update_fields.append("link_id = ?")
+            update_values.append(link_id)
+        
+        update_fields.append("date_updated = ?")
+        update_values.append(current_date)
+        update_values.append(prompt_id)
+        
+        query = f"""
+            UPDATE prompts
+            SET {", ".join(update_fields)}
+            WHERE prompt_id = ?
+        """
+
+        cursor.execute(query, update_values)
+        conn.commit()
+        logging.info(f"Prompt updated successfully: prompt_id={prompt_id}.")
+    except sqlite3.Error as e:
+        conn.rollback()
+        logging.error(f"Error updating prompt: {e}")
+
+def get_prompt_by_id(conn, prompt_id):
+    try:
+        cursor = conn.cursor()
+        query = """
+            SELECT prompt_id, name, prompt, prompt_type, link_id, date_added, date_updated
+            FROM prompts
+            WHERE prompt_id = ?
+        """
+        cursor.execute(query, (prompt_id,))
+        row = cursor.fetchone()
+        return row
+    except sqlite3.Error as e:
+        logging.error(f"Error retrieving prompt by id: {e}")
+        return None
+
+def get_prompts_by_type(conn, prompt_type):
+    try:
+        cursor = conn.cursor()
+        query = """
+            SELECT prompt_id, name, prompt, prompt_type, link_id, date_added, date_updated
+            FROM prompts
+            WHERE prompt_type = ?
+        """
+        cursor.execute(query, (prompt_type,))
+        rows = cursor.fetchall()
+        return rows
+    except sqlite3.Error as e:
+        logging.error(f"Error retrieving prompts by type: {e}")
+        return []
+
+def delete_prompt_by_id(conn, prompt_id):
+    try:
+        cursor = conn.cursor()
+        query = """
+            DELETE FROM prompts
+            WHERE prompt_id = ?
+        """
+        cursor.execute(query, (prompt_id,))
+        conn.commit()
+        logging.info(f"Prompt deleted successfully: prompt_id={prompt_id}.")
+    except sqlite3.Error as e:
+        conn.rollback()
+        logging.error(f"Error deleting prompt: {e}")
+
+def get_system_prompt(conn):
+    try:
+        cursor = conn.cursor()
+        query = """
+            SELECT prompt_id, name, prompt, prompt_type, link_id, date_added, date_updated
+            FROM prompts
+            WHERE prompt_type = 'SYSTEM'
+            LIMIT 1
+        """
+        cursor.execute(query)
+        row = cursor.fetchone()
+        return row
+    except sqlite3.Error as e:
+        logging.error(f"Error retrieving SYSTEM prompt: {e}")
+        return None
 #CHATGPT GENERATED CODE END#
 
 def get_config_obj(conn):
@@ -667,10 +779,16 @@ def get_conn():
     cur.execute(constants.CREATE_DOC_SUMMARY_TABLE)
     cur.execute(constants.CREATE_SCHEDULE_TABLE)
     cur.execute(constants.CREATE_DOCUMENT_TYPE_TABLE)
+    cur.execute(constants.CREATE_PROMPT_TABLE)
 
     if first_run:
         insert_config(conn, 'dev', False, True, '', '')
-    
+        insert_document_type(conn, 'All', 'all', False)
+        insert_document_type(conn, 'Summons', 'summons', False)
+        insert_document_type(conn, 'Decision', 'decision', False)
+        insert_document_type(conn, 'Infringement', 'infringement', False)
+        insert_prompt(conn, "DEFAULT_SYSTEM", constants.DEFAULT_SYSTEM_PROMPT, "SYSTEM", None)
+
     conn.commit()
     conn.close()
     return sqlite3.connect(CONFIG_FILE_PATH)

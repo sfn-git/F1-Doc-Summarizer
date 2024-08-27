@@ -5,6 +5,7 @@ import utils.db as db
 import utils.utils as utils
 import secrets
 import string
+import utils.constants as constants
 
 
 app = Flask(__name__)
@@ -49,12 +50,31 @@ def ollama_update(url):
     except Exception as e:
         logging.error(f"Error in ollama url socket {e}")
         emit("send_ollama_response", False)
+
+@socketio.on('update_sys_prompt')
+def update_sys_prompt(sys_prompt):
+    try:
+        conn = db.get_conn()
+        sys_prompt_id = db.get_system_prompt(conn)[0]
+        clean_string = sys_prompt.lstrip().rstrip()
+        db.update_prompt(conn=conn, prompt_id=sys_prompt_id, prompt=clean_string)
+        emit("send_sys_prompt", True)
+    except Exception as e:
+        logging.error(f"Error in update system prompt {e}")
+        emit("send_sys_prompt", False)
+
 # Routes
 @app.route("/")
 def index():
     utils.process_all_docs()
-    docs = db.join_document_send_documents_webhooks(db.get_conn())
-    return render_template("index.html", docs = docs)
+    conn = db.get_conn()
+    if len(db.get_all_webhooks(conn)) <= 0:
+        docs = db.get_all_documents(conn)
+        only_docs = True
+    else:
+        docs = db.join_document_send_documents_webhooks(conn)
+        only_docs = False
+    return render_template("index.html", docs=docs, only_docs=only_docs)
 
 @app.route("/config/ollama", methods = ["GET", "POST"])
 def config_ollama():
@@ -68,7 +88,20 @@ def config_ollama():
     else:
         configs = db.get_config_obj(conn)
         ollama_tags = utils.get_ollama_tags(configs["OLLAMA_URL"])
-        return render_template("ollama.html", configs=configs, ollama_tags = ollama_tags)
+        system_prompt = db.get_system_prompt(conn)
+        webhook_prompts = db.get_prompts_by_type(conn, "WEBHOOK")
+        doctype_prompts = db.get_prompts_by_type(conn, "DOCTYPE")
+        if system_prompt is None:
+            db.insert_prompt(conn, "DEFAULT_SYSTEM", constants.DEFAULT_SYSTEM_PROMPT, "SYSTEM", None)
+        # print(webhook_prompts)
+        # print(doctype_prompts)
+        return render_template("ollama.html", 
+                               configs=configs
+                               , ollama_tags = ollama_tags
+                               , system_prompt = system_prompt
+                               , webhook_prompts = webhook_prompts
+                               , doctype_prompts = doctype_prompts
+                            )
 
 @app.route("/config/webhooks")
 def config():

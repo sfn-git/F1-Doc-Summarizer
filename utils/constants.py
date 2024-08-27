@@ -66,5 +66,22 @@ CREATE_DOCUMENT_TYPE_TABLE="""CREATE TABLE IF NOT EXISTS document_type(
     date_updated DATE
 )
 """
+CREATE_PROMPT_TABLE="""CREATE TABLE IF NOT EXISTS prompts(
+    prompt_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    prompt TEXT,
+    prompt_type TEXT CHECK(prompt_type IN ('SYSTEM', 'DOCTYPE', 'WEBHOOK', 'FUN')),
+    link_id INTEGER,
+    date_added DATE,
+    date_updated DATE
+)
+"""
+
+INSTRUCTION_PROMPT="""Do not greet or describe what you are thinking when responding. Bold each header. Stay strictly to the format below. Only summarize using the guidelines below."""
+
+DEFAULT_SYSTEM_PROMPT ="""Race: [<Year> Name of Race]
+Document Number: [If it is listed in the document, put the document number here (only the number). If it cannot be located, skip this field]
+Summary: [Summarize the event that occurred in the document. Where applicable, include the driver(s), team(s), or organization(s) involved. Where applicable, include any penalties and what regulation was breached as part of the penalty.]
+[doc_data]""".lstrip().rstrip()
 
 BASE_FIA_URL = "https://www.fia.com"
