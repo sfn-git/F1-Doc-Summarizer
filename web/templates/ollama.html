@@ -108,7 +108,43 @@
             </div>
         </div>
         <div id="custom_prompts">
-            <form></form>
+            <h5>Add Custom Prompts</h5>
+            <div class="form-floating">
+                <form action="/config/add/prompts" method="post">
+                    <label for="prompt_name" class="form-label">Name</label>
+                    <input type="text" class="form-control" id="prompt_name" placeholder="name" name="prompt_name">
+                    <label for="prompt" class="form-label">Custom Prompt</label>
+                    <textarea class="form-control" placeholder="Custom Prompt Here" id="system_prompt_form" style="height: 150px" name="prompt"></textarea>
+                    <label for="document_type" class="form-label">Select When Prompt Should be Used</label>
+                    <select class="form-select" aria-label="Default select example" name="document_type">
+                        {%for i in doctypes%}
+                            <option value="{{i[0]}}">Document - {{i[1]}}</option>
+                        {%endfor%}
+                        
+                    </select>
+                    <button class="btn btn-primary my-2" type="submit">Add</button>
+                </form>
+                
+            </div>
+            <hr>
+            <h5>All Custom Prompts</h5>
+            {%for i in doctype_prompts%}
+                <form action="/config/update/prompts/{{i[0]}}" method="post">
+                    <label for="prompt_name" class="form-label">Name</label>
+                    <input type="text" class="form-control" id="prompt_name" placeholder="name" name="prompt_name" value="{{i[1]}}">
+                    <label for="prompt" class="form-label">Custom Prompt</label>
+                    <textarea class="form-control" placeholder="Custom Prompt Here" id="system_prompt_form" style="height: 150px" name="prompt">{{i[2]}}</textarea>
+                    <label for="document_type" class="form-label">Select When Prompt Should be Used</label>
+                    <select class="form-select" aria-label="Default select example" name="document_type">
+                        {%for j in doctypes%}
+                            <option value="{{j[0]}}" {% if j[0] == i[4]%}selected{%endif%}>Document - {{j[1]}}</option>
+                        {%endfor%}
+                        
+                    </select>
+                    <button class="btn btn-primary my-2" type="submit">Update</button>
+                    <a class="btn btn-danger my-2" type="submit" href="/config/delete/prompts/{{i[0]}}">Delete</a>
+                </form>
+            {%endfor%}
         </div>
     </div>
 </body>

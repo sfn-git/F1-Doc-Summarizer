@@ -180,11 +180,13 @@ def summarize_data(prompt):
         logging.error(exc_type, fname, exc_tb.tb_lineno, e)
         return ""
 
-def build_prompt(pdf_data):
+def build_prompt(pdf_data, doc_type):
     conn = db.get_conn()
-    sys_prompt = db.get_system_prompt(conn)[2]
-
-    prompt = f"{constants.INSTRUCTION_PROMPT}\n{get_fun_prompt()}\n{sys_prompt}".replace("[doc_data]", pdf_data)
+    custom_prompt = db.get_prompt_by_link_id(conn, doc_type[0])
+    prompt = db.get_system_prompt(conn)[2]
+    if custom_prompt:
+        prompt = custom_prompt
+    prompt = f"{constants.INSTRUCTION_PROMPT}\n{get_fun_prompt()}\n{prompt}".replace("[doc_data]", pdf_data)
     print(prompt)
     return prompt
 
@@ -233,11 +235,17 @@ def date_string(date):
     datetime_string = date.strftime("%B %d, %Y %I:%M %p %Z")
     return  datetime_string
 
+def date_string_time(date):
+    datetime_string = date.strftime("%I:%M %p %Z")
+    return  datetime_string
+
 def send_document(send_id):
     conn = db.get_conn()
     send_row = db.join_document_send_documents_webhooks(conn, send_id)[0]
+    print(send_row)
     webhook_url = send_row["webhooks"][0]["webhook_link"]
     title = send_row["document_name"]
+    doc_type = get_doc_type_from_doc_title(title)
     doc_url = send_row["document_link"]
     doc_id = send_row["doc_id"]
     doc_time = datetime.fromisoformat(send_row["document_date"]).astimezone(pytz.utc)
@@ -247,8 +255,8 @@ def send_document(send_id):
     # if doc_summary is None or doc_summary[3] == "":
     file_path = get_file_from_url(doc_url)
     pdf_data = get_pdf_data(file_path)
-    prompt = build_prompt(pdf_data)
-    summary = f"**Document Date:**\n{date_string(doc_time)}\n{date_string(doc_time_est)}\n\n{summarize_data(prompt)}"
+    prompt = build_prompt(pdf_data, doc_type)
+    summary = f"**Document Date:**\n{date_string(doc_time)} ({date_string_time(doc_time_est)})\n\n{summarize_data(prompt)}"
     ollama_url = db.get_config_ollama_url(conn)
     ollama_model = db.get_config_ollama_model(conn)
     db.insert_document_summary(conn, doc_id, summary, prompt, ollama_url, ollama_model)
@@ -261,6 +269,16 @@ def send_document(send_id):
         db.update_document_send_date_by_send_id(conn, send_id)
     # emit('sent_document', {"id":send_id, "status": status})
     return status
+
+def get_doc_type_from_doc_title(title):
+    conn = db.get_conn()
+    allowed_doc_types = db.get_all_document_types(conn)
+    for dts in allowed_doc_types:
+        enum = dts[1].lower()
+        if enum in title.lower():
+            return dts
+    return None
+
 
 def queue_document(send_id):
     conn = db.get_conn()
