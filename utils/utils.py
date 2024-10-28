@@ -233,6 +233,10 @@ def date_string(date):
     datetime_string = date.strftime("%B %d, %Y %I:%M %p %Z")
     return  datetime_string
 
+def date_string_time(date):
+    datetime_string = date.strftime("%I:%M %p %Z")
+    return  datetime_string
+
 def send_document(send_id):
     conn = db.get_conn()
     send_row = db.join_document_send_documents_webhooks(conn, send_id)[0]
@@ -248,7 +252,7 @@ def send_document(send_id):
     file_path = get_file_from_url(doc_url)
     pdf_data = get_pdf_data(file_path)
     prompt = build_prompt(pdf_data)
-    summary = f"**Document Date:**\n{date_string(doc_time)}\n{date_string(doc_time_est)}\n\n{summarize_data(prompt)}"
+    summary = f"**Document Date:**\n{date_string(doc_time)} ({date_string_time(doc_time_est)})\n\n{summarize_data(prompt)}"
     ollama_url = db.get_config_ollama_url(conn)
     ollama_model = db.get_config_ollama_model(conn)
     db.insert_document_summary(conn, doc_id, summary, prompt, ollama_url, ollama_model)

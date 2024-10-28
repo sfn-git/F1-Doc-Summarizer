@@ -627,7 +627,7 @@ def get_active_document_types(conn):
     try:
         cursor = conn.cursor()
         query = """
-            SELECT keyword
+            SELECT type_id, keyword
             FROM document_type
             WHERE active = 1
         """
@@ -749,6 +749,18 @@ def get_system_prompt(conn):
     except sqlite3.Error as e:
         logging.error(f"Error retrieving SYSTEM prompt: {e}")
         return None
+
+def get_prompt_by_link_id(conn, link_id):
+    try:
+        cursor = conn.cursor()
+        query = "SELECT * FROM prompts WHERE link_id = ?"
+        cursor.execute(query, (link_id,))
+        result = cursor.fetchone()
+        return result if result else False
+    except sqlite3.Error as e:
+        logging.error(f"Error retrieving prompt by link_id {link_id}: {e}")
+        return False
+
 #CHATGPT GENERATED CODE END#
 
 def get_config_obj(conn):

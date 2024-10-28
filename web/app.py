@@ -91,6 +91,8 @@ def config_ollama():
         system_prompt = db.get_system_prompt(conn)
         webhook_prompts = db.get_prompts_by_type(conn, "WEBHOOK")
         doctype_prompts = db.get_prompts_by_type(conn, "DOCTYPE")
+        doctypes = db.get_active_document_types(conn)
+        print(doctypes)
         if system_prompt is None:
             db.insert_prompt(conn, "DEFAULT_SYSTEM", constants.DEFAULT_SYSTEM_PROMPT, "SYSTEM", None)
         # print(webhook_prompts)
@@ -101,7 +103,38 @@ def config_ollama():
                                , system_prompt = system_prompt
                                , webhook_prompts = webhook_prompts
                                , doctype_prompts = doctype_prompts
+                               , doctypes = doctypes 
                             )
+
+@app.route("/config/add/prompts", methods = ["POST"])
+def add_custom_prompt():
+    prompt_name = request.form["prompt_name"]
+    prompt = request.form["prompt"]
+    doc_type = request.form["document_type"]
+
+    conn = db.get_conn()
+    prompt_check = db.get_prompt_by_link_id(conn, doc_type)
+    if not prompt_check:
+        db.insert_prompt(conn, prompt_name, prompt, "DOCTYPE", doc_type)
+    
+    return redirect('/config/ollama')
+
+@app.route("/config/delete/prompts/<id>")
+def delete_custom_prompt(id):
+    conn = db.get_conn()
+    db.delete_prompt_by_id(conn, id)
+    return redirect('/config/ollama')
+
+@app.route("/config/update/prompts/<id>", methods = ["POST"])
+def update_custom_prompt(id):
+    prompt_name = request.form["prompt_name"]
+    prompt = request.form["prompt"]
+    doc_type = request.form["document_type"]
+
+    conn = db.get_conn()
+    db.update_prompt(conn, id, prompt_name, prompt, "DOCTYPE", doc_type)
+    
+    return redirect('/config/ollama')
 
 @app.route("/config/webhooks")
 def config():
