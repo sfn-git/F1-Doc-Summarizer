@@ -47,7 +47,6 @@ CREATE_DOC_SUMMARY_TABLE="""CREATE TABLE IF NOT EXISTS document_summary(
     ollama_model TEXT,
     CONSTRAINT docs_fk
     FOREIGN KEY (doc_id) REFERENCES documents (doc_id)
-
 )"""
 CREATE_SCHEDULE_TABLE="""CREATE TABLE IF NOT EXISTS schedule(
     job_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,6 +65,15 @@ CREATE_DOCUMENT_TYPE_TABLE="""CREATE TABLE IF NOT EXISTS document_type(
     date_updated DATE
 )
 """
+CREATE_DOCUMENT_TYPE_LINK_TABLE="""CREATE TABLE IF NOT EXISTS document_type_link(
+       type_id INTEGER,
+       doc_id INTEGER,
+       CONSTRAINT docs_fk
+       FOREIGN KEY (doc_id) REFERENCES documents (doc_id)
+       CONSTRAINT docs_type_fk
+       FOREIGN KEY (type_id) REFERENCES document_type (type_id)
+)
+"""
 CREATE_PROMPT_TABLE="""CREATE TABLE IF NOT EXISTS prompts(
     prompt_id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
@@ -77,10 +85,9 @@ CREATE_PROMPT_TABLE="""CREATE TABLE IF NOT EXISTS prompts(
 )
 """
 
-INSTRUCTION_PROMPT="""Do not greet or describe what you are thinking when responding. Stay strictly to the format below. Only summarize using the guidelines below."""
+INSTRUCTION_PROMPT="""Do not greet or describe what you are thinking when responding. Stay strictly to the format below."""
 
-DEFAULT_SYSTEM_PROMPT ="""Race: [<Year> Name of Race]
-Summary: [Summarize the event that occurred in the document. Where applicable, include the driver(s), team(s), or organization(s) involved. Where applicable, include any penalties and what regulation was breached as part of the penalty.]
-[doc_data]""".lstrip().rstrip()
+DEFAULT_SYSTEM_PROMPT ="""Summarize the event that occurred in the document. Where applicable, include the driver(s), team(s), or organization(s) involved. Where applicable, include any penalties and what regulation was breached as part of the penalty.
+Raw Data: [doc_data]""".lstrip().rstrip()
 
 BASE_FIA_URL = "https://www.fia.com"

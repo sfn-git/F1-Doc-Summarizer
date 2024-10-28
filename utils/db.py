@@ -761,6 +761,39 @@ def get_prompt_by_link_id(conn, link_id):
         logging.error(f"Error retrieving prompt by link_id {link_id}: {e}")
         return False
 
+def insert_document_type_link(conn, type_id, doc_id):
+    try:
+        cursor = conn.cursor()
+        query = "INSERT INTO document_type_link (type_id, doc_id) VALUES (?, ?)"
+        cursor.execute(query, (type_id, doc_id))
+        conn.commit()
+        logging.info(f"Inserted into document_type_link: type_id={type_id}, doc_id={doc_id}")
+    except sqlite3.Error as e:
+        conn.rollback()
+        logging.error(f"Error inserting into document_type_link: {e}")
+
+def get_document_type_links(conn, type_id=None, doc_id=None):
+    try:
+        cursor = conn.cursor()
+        if type_id and doc_id:
+            query = "SELECT * FROM document_type_link WHERE type_id = ? AND doc_id = ?"
+            cursor.execute(query, (type_id, doc_id))
+        elif type_id:
+            query = "SELECT * FROM document_type_link WHERE type_id = ?"
+            cursor.execute(query, (type_id,))
+        elif doc_id:
+            query = "SELECT * FROM document_type_link WHERE doc_id = ?"
+            cursor.execute(query, (doc_id,))
+        else:
+            query = "SELECT * FROM document_type_link"
+            cursor.execute(query)
+        
+        result = cursor.fetchall()
+        return result
+    except sqlite3.Error as e:
+        logging.error(f"Error retrieving from document_type_link: {e}")
+        return []
+
 #CHATGPT GENERATED CODE END#
 
 def get_config_obj(conn):
@@ -792,6 +825,7 @@ def get_conn():
     cur.execute(constants.CREATE_SCHEDULE_TABLE)
     cur.execute(constants.CREATE_DOCUMENT_TYPE_TABLE)
     cur.execute(constants.CREATE_PROMPT_TABLE)
+    cur.execute(constants.CREATE_DOCUMENT_TYPE_LINK_TABLE)
 
     if first_run:
         insert_config(conn, 'dev', False, True, '', '')

@@ -91,7 +91,7 @@ def config_ollama():
         system_prompt = db.get_system_prompt(conn)
         webhook_prompts = db.get_prompts_by_type(conn, "WEBHOOK")
         doctype_prompts = db.get_prompts_by_type(conn, "DOCTYPE")
-        doctypes = db.get_active_document_types(conn)
+        doctypes = db.get_all_document_types(conn)
         print(doctypes)
         if system_prompt is None:
             db.insert_prompt(conn, "DEFAULT_SYSTEM", constants.DEFAULT_SYSTEM_PROMPT, "SYSTEM", None)
