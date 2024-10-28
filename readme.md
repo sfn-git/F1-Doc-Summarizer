@@ -1,6 +1,6 @@
 # FIA Document Send and Summarize
 
-- A program that will retrieve the latest FIA document file, summarize it using AI, then sends it to a Discord channel using webhook.
+- A program that will retrieve the latest FIA document file, summarize it using AI, then sends it to a Discord channel using webhook
 
 ## Requirements
 - Python
@@ -25,7 +25,7 @@
     - You can adjust the prompt used to configure to your liking
     - You can use different prompts depending on the document type (see documents)
 - Documents
-    - Ability to filter the type of document that should be sent based off the title of the document. 
+    - Ability to filter the type of document that should be sent based off the title of the document
 - Scheduler
     - Built in scheduler allows you to customize how often you would like to check the FIA documents website for a new document to process. 
         - Use cron syntax to set the timing for a specific job. 
