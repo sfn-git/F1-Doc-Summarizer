@@ -103,7 +103,7 @@ def process_all_docs():
                             normalized_doc_name = doc_name.lower()
                             if len(allowed_doc_types) > 0:
                                 for dts in allowed_doc_types:
-                                    enum = dts[0].lower()
+                                    enum = dts[1].lower()
                                     if enum in normalized_doc_name:
                                         logging.info(f"Document {doc_name} will be sent indicated with enum {enum}")
                                         doc_skip = False
