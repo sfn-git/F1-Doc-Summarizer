@@ -86,7 +86,7 @@ def process_all_docs():
             if doc.a is not None:
                 link = doc.a['href']
             doc_time = parse_date_with_timezone(doc.span.text, "%d.%m.%y %H:%M", "CET")
-            if "/sites/default/files/decision-document" in link:
+            if "/sites/default/files/decision-document" in link or "/system/files/decision-document" in link:
                 doc_hash = get_md5_hash(link)
                 db_doc = db.get_document_by_hash(conn, doc_hash)
                 if db_doc == None:
