@@ -67,6 +67,29 @@ def parse_date_with_timezone(date_string, date_format, timezone_name):
         logging.error(f"Error parsing date: {e}")
         return None
 
+def generate_new_doc_title(doc_name):
+    conn = db.get_conn()
+    if(db.get_config_ollama_url(conn) != ""):
+        base_url = db.get_config_ollama_url(conn)
+        model = db.get_config_ollama_model(conn)
+        logging.info('(Model) {}'.format(model))
+        url = '/api/generate'
+        prompt = "Given the file name, determine if the current file name is human readable. If it is return the title as is. Otherwise you must make the document title readable and in the format in which a human would be easily able to read it. Only return the title in your response. \n{}".format(doc_name)
+        generate_obj = {
+            "model": model,
+            "prompt": "{}".format(prompt),
+            "stream": False
+        }
+        logging.info('(Prompt) {}'.format(prompt).replace('\n', ' '))
+        generate_res = requests.post("{}{}".format(base_url, url), json=generate_obj)
+        generate_res.raise_for_status()
+        gen_response = generate_res.json()['response']
+        new_doc_name = gen_response
+        logging.info(new_doc_name)
+        return new_doc_name
+    else:
+        return doc_name
+
 def process_all_docs():
     try:
         documents_url = "{}/documents".format(constants.BASE_FIA_URL)
@@ -200,9 +223,9 @@ def upload_img(img_path):
     try:
         result.raise_for_status()
     except Exception as err:
-        print(err)
+        logging.error(err)
     else:
-        print("Image Uploaded".format(result.status_code))
+        logging.info("Image Uploaded".format(result.status_code))
         return result.json()["attachments"][0]["url"]
 
 def send_message(url, title, description, doc_url, img_url=None):
@@ -214,7 +237,7 @@ def send_message(url, title, description, doc_url, img_url=None):
         }
         data["embeds"] = [
             {
-                "title": "{}".format(title),
+                "title": "{}".format(generate_new_doc_title(title)),
                 "description" : "{}".format(description),
                 "url": "{}".format(doc_url),
             }
