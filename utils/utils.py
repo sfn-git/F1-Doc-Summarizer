@@ -138,6 +138,7 @@ def get_file_from_url (url):
 
 def get_pdf_data(file_name):
     try:
+        logging.info("Extracting text from {}".format(file_name))
         parsed_pdf = parser.from_file(filename=file_name)
         raw_data = parsed_pdf['content']    
         s = StringIO(raw_data)
@@ -182,20 +183,18 @@ def summarize_data(prompt):
 
 def build_prompt(pdf_data, doc_type):
     conn = db.get_conn()
-    custom_prompt = db.get_prompt_by_link_id(conn, doc_type[0])
+    # custom_prompt = db.get_prompt_by_link_id(conn, doc_type[0])
     prompt = db.get_system_prompt(conn)[2]
-    if custom_prompt:
-        prompt = custom_prompt
+    # if custom_prompt:
+    #     prompt = custom_prompt
     prompt = f"{constants.INSTRUCTION_PROMPT}\n{get_fun_prompt()}\n{prompt}".replace("[doc_data]", pdf_data)
-    print(prompt)
+    logging.debug("Prompt built successfully {}".format(prompt))
     return prompt
 
 def upload_img(img_path):
 
     url = ""
-
     files = {"image": open(img_path, "rb")}
-
     result = requests.post(url, files = files)
 
     try:
@@ -242,7 +241,6 @@ def date_string_time(date):
 def send_document(send_id):
     conn = db.get_conn()
     send_row = db.join_document_send_documents_webhooks(conn, send_id)[0]
-    print(send_row)
     webhook_url = send_row["webhooks"][0]["webhook_link"]
     title = send_row["document_name"]
     doc_type = get_doc_type_from_doc_title(title)
