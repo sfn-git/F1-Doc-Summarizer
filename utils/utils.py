@@ -67,6 +67,29 @@ def parse_date_with_timezone(date_string, date_format, timezone_name):
         logging.error(f"Error parsing date: {e}")
         return None
 
+def generate_new_doc_title(doc_name):
+    conn = db.get_conn()
+    if(db.get_config_ollama_url(conn) != ""):
+        base_url = db.get_config_ollama_url(conn)
+        model = db.get_config_ollama_model(conn)
+        logging.info('(Model) {}'.format(model))
+        url = '/api/generate'
+        prompt = "Given the file name, determine if the current file name is human readable. If it is return the title as is. Otherwise you must make the document title readable and in the format in which a human would be easily able to read it. Only return the title in your response. \n{}".format(doc_name)
+        generate_obj = {
+            "model": model,
+            "prompt": "{}".format(prompt),
+            "stream": False
+        }
+        logging.info('(Prompt) {}'.format(prompt).replace('\n', ' '))
+        generate_res = requests.post("{}{}".format(base_url, url), json=generate_obj)
+        generate_res.raise_for_status()
+        gen_response = generate_res.json()['response']
+        new_doc_name = gen_response
+        logging.info(new_doc_name)
+        return new_doc_name
+    else:
+        return doc_name
+
 def process_all_docs():
     try:
         documents_url = "{}/documents".format(constants.BASE_FIA_URL)
@@ -138,6 +161,7 @@ def get_file_from_url (url):
 
 def get_pdf_data(file_name):
     try:
+        logging.info("Extracting text from {}".format(file_name))
         parsed_pdf = parser.from_file(filename=file_name)
         raw_data = parsed_pdf['content']    
         s = StringIO(raw_data)
@@ -182,28 +206,26 @@ def summarize_data(prompt):
 
 def build_prompt(pdf_data, doc_type):
     conn = db.get_conn()
-    custom_prompt = db.get_prompt_by_link_id(conn, doc_type[0])
+    # custom_prompt = db.get_prompt_by_link_id(conn, doc_type[0])
     prompt = db.get_system_prompt(conn)[2]
-    if custom_prompt:
-        prompt = custom_prompt
+    # if custom_prompt:
+    #     prompt = custom_prompt
     prompt = f"{constants.INSTRUCTION_PROMPT}\n{get_fun_prompt()}\n{prompt}".replace("[doc_data]", pdf_data)
-    print(prompt)
+    logging.debug("Prompt built successfully {}".format(prompt))
     return prompt
 
 def upload_img(img_path):
 
     url = ""
-
     files = {"image": open(img_path, "rb")}
-
     result = requests.post(url, files = files)
 
     try:
         result.raise_for_status()
     except Exception as err:
-        print(err)
+        logging.error(err)
     else:
-        print("Image Uploaded".format(result.status_code))
+        logging.info("Image Uploaded".format(result.status_code))
         return result.json()["attachments"][0]["url"]
 
 def send_message(url, title, description, doc_url, img_url=None):
@@ -215,7 +237,7 @@ def send_message(url, title, description, doc_url, img_url=None):
         }
         data["embeds"] = [
             {
-                "title": "{}".format(title),
+                "title": "{}".format(generate_new_doc_title(title)),
                 "description" : "{}".format(description),
                 "url": "{}".format(doc_url),
             }
@@ -242,7 +264,6 @@ def date_string_time(date):
 def send_document(send_id):
     conn = db.get_conn()
     send_row = db.join_document_send_documents_webhooks(conn, send_id)[0]
-    print(send_row)
     webhook_url = send_row["webhooks"][0]["webhook_link"]
     title = send_row["document_name"]
     doc_type = get_doc_type_from_doc_title(title)

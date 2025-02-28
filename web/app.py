@@ -6,6 +6,7 @@ import utils.utils as utils
 import secrets
 import string
 import utils.constants as constants
+import traceback
 
 
 app = Flask(__name__)
@@ -40,7 +41,8 @@ def send_socket(send_id):
         emit("send_response", {"status": status, "id": send_id, 'sent_date': send_date})
     except Exception as e:
         logging.error(f"Error for sending doc from websocket {e}")
-        emit("send_response", {"status": False})
+        # print(traceback.print_exc())
+        emit("send_response", {"status": False, "id": False, 'sent_date': False})
 
 @socketio.on('ollama_url_form')
 def ollama_update(url):
@@ -92,7 +94,6 @@ def config_ollama():
         webhook_prompts = db.get_prompts_by_type(conn, "WEBHOOK")
         doctype_prompts = db.get_prompts_by_type(conn, "DOCTYPE")
         doctypes = db.get_all_document_types(conn)
-        print(doctypes)
         if system_prompt is None:
             db.insert_prompt(conn, "DEFAULT_SYSTEM", constants.DEFAULT_SYSTEM_PROMPT, "SYSTEM", None)
         # print(webhook_prompts)
