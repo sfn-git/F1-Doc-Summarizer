@@ -68,27 +68,29 @@ def parse_date_with_timezone(date_string, date_format, timezone_name):
         return None
 
 def generate_new_doc_title(doc_name):
-    conn = db.get_conn()
-    if(db.get_config_ollama_url(conn) != ""):
-        base_url = db.get_config_ollama_url(conn)
-        model = db.get_config_ollama_model(conn)
-        logging.info('(Model) {}'.format(model))
-        url = '/api/generate'
-        prompt = "Given the file name, determine if the current file name is human readable. If it is return the title as is. Otherwise you must make the document title readable and in the format in which a human would be easily able to read it. Only return the title in your response. \n{}".format(doc_name)
-        generate_obj = {
-            "model": model,
-            "prompt": "{}".format(prompt),
-            "stream": False
-        }
-        logging.info('(Prompt) {}'.format(prompt).replace('\n', ' '))
-        generate_res = requests.post("{}{}".format(base_url, url), json=generate_obj)
-        generate_res.raise_for_status()
-        gen_response = generate_res.json()['response']
-        new_doc_name = gen_response
-        logging.info(new_doc_name)
-        return new_doc_name
-    else:
-        return doc_name
+    # conn = db.get_conn()
+    # if(db.get_config_ollama_url(conn) != ""):
+    #     base_url = db.get_config_ollama_url(conn)
+    #     model = db.get_config_ollama_model(conn)
+    #     logging.info('(Model) {}'.format(model))
+    #     url = '/api/generate'
+    #     prompt = "Given the file name, determine if the current file name is human readable. If it is return the title as is. Otherwise you must make the document title readable and in the format in which a human would be easily able to read it. Only return the title in your response. \n{}".format(doc_name)
+    #     generate_obj = {
+    #         "model": model,
+    #         "prompt": "{}".format(prompt),
+    #         "stream": False
+    #     }
+    #     logging.info('(Prompt) {}'.format(prompt).replace('\n', ' '))
+    #     generate_res = requests.post("{}{}".format(base_url, url), json=generate_obj)
+    #     generate_res.raise_for_status()
+    #     gen_response = generate_res.json()['response']
+    #     new_doc_name = gen_response
+    #     logging.info(new_doc_name)
+    #     return new_doc_name
+    # else:
+    #     return doc_name
+    doc_spaces = doc_name.replace("_", " ")
+    return ' '.join(word.capitalize() for word in doc_spaces.split())
 
 def process_all_docs():
     try:
@@ -114,7 +116,7 @@ def process_all_docs():
                 db_doc = db.get_document_by_hash(conn, doc_hash)
                 if db_doc == None:
                     doc_split = link.split('/')
-                    doc_name = doc_split[len(doc_split)-1].split('.pdf')[0]
+                    doc_name = generate_new_doc_title(doc_split[len(doc_split)-1].split('.pdf')[0])
                     db.insert_document(conn, doc_name, "{}{}".format(constants.BASE_FIA_URL, quote(link)), link, doc_hash, doc_time)
                     db_doc = db.get_document_by_hash(conn, doc_hash)
                     webhooks = db.get_all_webhooks(conn)
@@ -237,7 +239,7 @@ def send_message(url, title, description, doc_url, img_url=None):
         }
         data["embeds"] = [
             {
-                "title": "{}".format(generate_new_doc_title(title)),
+                "title": "{}".format(title),
                 "description" : "{}".format(description),
                 "url": "{}".format(doc_url),
             }
