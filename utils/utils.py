@@ -5,7 +5,6 @@ import utils.db as db
 import os
 import re
 from datetime import datetime
-import pytz
 from random import choice, randint
 from utils.logging import logging
 from bs4 import BeautifulSoup
